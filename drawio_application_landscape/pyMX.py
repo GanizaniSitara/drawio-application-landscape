@@ -156,8 +156,7 @@ class Level1:
         # TODO: if parent is scaled then we should scale the child too, currently no flag on parent
         conditions_one = {'stringLenght': 9, 'softwareApplicationBoxes': 1}
         conditions_two = {'stringLenght': 18, 'softwareApplicationBoxes': 2}
-        scaling_ratio = 2 / 3
-        logger.info(f"Level1: {self.name} {self.width()} {self.height()} {style}")
+        logger.debug(f"Level1: {self.name} {self.width()} {self.height()} {style}")
         condition_one = len(self.name) > 9 and self.width() == SoftwareApplication.width + 4 * self.horizontal_spacing
         condition_two = len(self.name) > 18 and self.width() == 2 * SoftwareApplication.width + 5 * self.horizontal_spacing
 
