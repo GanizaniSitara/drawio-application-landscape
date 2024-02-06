@@ -1,0 +1,44 @@
+Level1,Level2,AppName,TC,StatusRAG,Resilience,HostingPercent,HostingPattern1,HostingPattern2,Arrow1,Arrow2,Link,Controls,DecommDate
+IT Collateral Optimization,Lending,Zero,25,red,2,0,Azure,Linux,up,up,http://www.gooogle.com,http://www.yahoo.com,
+IT Collateral Optimization,Lending,TwentyFive,25,amber,4,25,WindowsVM,OpenShift,down,up,http://www.gooogle.com,,
+IT Collateral Optimization,Lending,Fifty,25,green,4,50,AWS,Windows,down,down,http://www.gooogle.com,http://www.yahoo.com,
+IT Collateral Optimization,Lending,SeventyFive,25,red,3,75,Azure,Linux,up,up,http://www.gooogle.com,,
+IT Collateral Optimization,Lending,Hundred,25,amber,4,100,WindowsVM,OpenShift,down,up,http://www.gooogle.com,http://www.yahoo.com,
+IT Collateral Optimization,Lending,Fifty B,25,green,1,50,AWS,Windows,down,down,http://www.gooogle.com,http://www.yahoo.com,
+IT Collateral Optimization,Secured Lending,Credit Gateway,18,red,3,10,Linux,Azure,up,up,http://www.gooogle.com,http://www.yahoo.com,2025-12
+IT Collateral Optimization,Secured Lending,Mortgage Union,15,red,4,85,OpenShift,WindowsVM,down,up,http://www.gooogle.com,http://www.yahoo.com,
+IT Collateral Optimization,Secured Lending,General Credit,18,red,4,10,Linux,Azure,up,up,http://www.gooogle.com,,
+IT Collateral Optimization,Secured Lending,BW IB Mortgage,15,red,2,85,OpenShift,WindowsVM,down,up,http://www.gooogle.com,http://www.yahoo.com,
+IT Collateral Optimization,Secured Lending,Mortgage Sales & Originations,22,amber,2,100,Linux,Windows,down,down,http://www.gooogle.com,,
+IT Collateral Optimization,Secured Lending,Vantage,24,green,1,80,Linux,Azure,up,up,http://www.gooogle.com,http://www.yahoo.com,2025-12
+IT Collateral Optimization,Secured Lending,Mortgages BTC - Trinity,78,red,2,15,Linux,WindowsVM,down,up,http://www.gooogle.com,,
+IT Collateral Optimization,Secured Lending,HOGAN ILP,55,amber,0,40,OpenShift,Azure,down,down,http://www.gooogle.com,,
+IT Collateral Optimization,Secured Lending,Second Change Journal,15,red,3,85,OpenShift,WindowsVM,down,up,http://www.gooogle.com,,
+IT Collateral Optimization,Secured Lending,Collateral Calc Engine,22,amber,4,100,Linux,Windows,down,down,http://www.gooogle.com,,
+IT Collateral Optimization,Secured Lending,Vantage Z,24,green,4,80,Linux,Azure,up,up,http://www.gooogle.com,,
+EQ AMD,Equities Pricing,Static Data Hub,45,green,4,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+EQ AMD,Equities Pricing,Global Address Locator,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+EQ AMD,Equities Pricing,SDS,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,2026-06
+EQ AMD,Equities Pricing,Pride,45,green,0,60,Windows,WindowsVM,up,up,http://www.gooogle.com,,
+EQ AMD,Equities Pricing,BIS Mapcite,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,2024-06
+Products & Services,Lending,BPF Encore,25,red,3,30,Azure,Linux,up,up,http://www.gooogle.com,http://www.yahoo.com,
+Products & Services,Lending,ALS,25,amber,2,65,WindowsVM,OpenShift,down,up,http://www.gooogle.com,http://www.yahoo.com,
+Products & Services,Lending,BPF Centrac,25,green,4,75,AWS,Windows,down,down,http://www.gooogle.com,http://www.yahoo.com,
+Products & Services,Secured Lending,Credit Gateway,18,red,4,10,Linux,Azure,up,up,http://www.gooogle.com,,
+Products & Services,Secured Lending,BW IB Mortgage,15,red,3,85,OpenShift,WindowsVM,down,up,http://www.gooogle.com,http://www.yahoo.com,2025-12
+Products & Services,Secured Lending,Mortgage Sales & Originations,22,amber,3,100,Linux,Windows,down,down,http://www.gooogle.com,http://www.yahoo.com,
+Products & Services,Secured Lending,Customer Vantage,24,green,3,80,Linux,Azure,up,up,http://www.gooogle.com,http://www.yahoo.com,
+Products & Services,Secured Lending,Mortgages Servicing,78,red,2,15,Linux,WindowsVM,down,up,http://www.gooogle.com,,
+Products & Services,Secured Lending,Bennie Kay Market Data,55,amber,3,40,OpenShift,Azure,down,down,http://www.gooogle.com,http://www.yahoo.com,
+Data & Integration,Enterprise Reference Data Management,Static Data Hub,45,green,4,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+Data & Integration,Enterprise Reference Data Management,Lineage5,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+Data & Integration,Enterprise Reference Data Management,Data Integration Hub,45,green,1,60,Windows,WindowsVM,up,up,http://www.gooogle.com,,2024-12
+Data & Integration,Enterprise Reference Data Management,Hadoop,45,green,1,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+Data & Integration,Enterprise Reference Data Management,ETL Tools,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+IT COMMODITIES,Commodities Front Office,Static Data Hub,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+IT COMMODITIES,Commodities Front Office,Global Address Locator,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+IT COMMODITIES,Commodities Front Office,Static Data Service,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,2027-12
+IT COMMODITIES,Commodities Front Office,Pride,45,green,2,60,Windows,WindowsVM,up,up,http://www.gooogle.com,,
+IT COMMODITIES,Commodities Front Office,GIS Maps,45,green,4,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+IT COMMODITIES,Commodities Front Office,CMD Physical Delivery,45,green,1,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+IT COMMODITIES,Commodities Front Office,GST - Global Shipping Tracker,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
