@@ -16,6 +16,7 @@ from datetime import datetime
 import drawio_shared_functions
 import drawio_tools
 
+from drawio_application_landscape.config import ScriptConfig
 from drawio_application_landscape.config import DiagramConfig
 import utils
 
@@ -853,7 +854,7 @@ def render_L1(file):
     xml_to_file(mxGraphModel, file_name + '.drawio')
 
     drawio_shared_functions.pretty_print(mxGraphModel)
-    os.system('"C:\Program Files\draw.io\draw.io.exe" ' + file_name + ".drawio")
+    os.system(f'"{ScriptConfig.DRAWIO_PATH}" ' + file_name + ".drawio")
 
 
 def render_partial_views(file_name, level1s):

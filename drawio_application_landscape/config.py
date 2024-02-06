@@ -5,6 +5,8 @@
 #
 # color_level1 = DiagramConfig.COLORS["L1"]
 
+class ScriptConfig:
+    DRAWIO_PATH = "C:\Program Files\draw.io\draw.io.exe"
 
 class DiagramConfig:
     def __init__(self):
