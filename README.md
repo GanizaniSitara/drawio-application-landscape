@@ -14,6 +14,11 @@ Clone the repo then:
 python pyMX.py L1 examples\Application_Diagram_Builder.csv
 ```
 
+### Experiments
+
+1. Try toggling the SHOW_PICTOGRAMS flag in config.py to bring in the Harvey Balls, Arrows and Hosting Platform Icons
+2. In Drawio, open layers and toggle visbility to show RAG status in addition to Resilience Category colourization
+
 ### Notes
 Only L1 is tested at the moment. L0 would create a map one level higher than L1, but the data is not in the example file.
   
