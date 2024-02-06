@@ -16,8 +16,8 @@ from datetime import datetime
 import drawio_shared_functions
 import drawio_tools
 
-from drawio_application_landscape.config import ScriptConfig
-from drawio_application_landscape.config import DiagramConfig
+from config import ScriptConfig
+from config import DiagramConfig
 import utils
 
 
@@ -875,7 +875,12 @@ if __name__ == "__main__":
 
     if sys.stdin and sys.stdin.isatty():
         print("Running interactively")
-        main(sys.argv[1])
+        DEBUG = False
+        loglevel = logging.basicConfig(level=logging.INFO,
+                                       format='%(asctime)s.%(msecs)03d,%(levelname)-5s,%(name)s,Line %(lineno)d,%(message)s',
+                                       datefmt='%Y-%m-%dT%H:%M:%S')
+        logger = logging.getLogger(__name__)
+        main(sys.argv[1], sys.argv[2])
     elif sys.gettrace():
         print("Running in debugger")
         DEBUG = True
