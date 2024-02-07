@@ -16,8 +16,8 @@ from datetime import datetime
 import drawio_shared_functions
 import drawio_tools
 
-from config import ScriptConfig
-from config import DiagramConfig
+from config_script import ScriptConfig
+from config_diagram import DiagramConfig
 import utils
 
 
