@@ -704,6 +704,7 @@ def xml_to_file(mxGraphModel, filename='output.drawio'):
 
     filepath = ScriptConfig.ROOT_FOLDER + "\\" + filename
     tree = etree.ElementTree(root)
+    logger.info(f"Writing to file: {filepath}")
     tree.write(filepath)
 
 
