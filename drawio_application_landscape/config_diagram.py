@@ -13,6 +13,13 @@ class DiagramConfig:
 
     SHOW_PICTOGRAMS = False
 
+
+    MAX_PAGE_WIDTH = {
+        # "L0": 1600,
+        "L1": 800,
+    }
+
+
     CONFIG = {
         "DEFAULT": {
             "fontFamily": "Arial",
@@ -58,15 +65,10 @@ class DiagramConfig:
 
 
     COLORS = {
-        "L0": "#000000",
+        # "L0": "#000000",
         "L1": "#FF0000",
         "L2": "#00FF00",
         "App": "#0000FF",
-    }
-
-    MAX_PAGE_WIDTH = {
-        "L0": 1600,
-        "L1": 1600,
     }
 
 

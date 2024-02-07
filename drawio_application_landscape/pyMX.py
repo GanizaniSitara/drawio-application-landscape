@@ -115,15 +115,28 @@ class Level1:
                 result += level2.dimensions(transpose=transpose)[0] + self.vertical_spacing
         return result
 
+    def max_width_fit(self):
+        # objects already sorted
+        total_width = 0
+        rows = 1
+        for obj in self.level2s:
+            if total_width + obj.width() > DiagramConfig.MAX_PAGE_WIDTH['L1']:
+                rows += 1
+                total_width = obj.width()  # Start new row with this object's width
+            else:
+                total_width += obj.width()
+        return rows
+
+
     def width(self, transpose=False, **kwargs):
-        ret_val = self.horizontal_spacing
+        result = self.horizontal_spacing
         if not transpose:
             for level2 in self.level2s:
-                ret_val += level2.dimensions(transpose=transpose)[1] + self.horizontal_spacing
+               result += level2.dimensions(transpose=transpose)[1] + self.horizontal_spacing
         else:
-            ret_val += max(
+            result += max(
                 level2.dimensions(transpose=transpose)[1] for level2 in self.level2s) + self.horizontal_spacing
-        return ret_val
+        return result
 
     def dimensions(self, transpose=False, **kwargs):
         if kwargs.get('tree'):
@@ -202,6 +215,7 @@ class Level1:
             L2_x_cursor = self.x + 10
             L2_y_cursor = self.y + self.header_height
 
+            # Last working code comment here ...
             if not transpose:
                     for level2 in self.level2s:
                         level2.x = L2_x_cursor
@@ -214,6 +228,34 @@ class Level1:
                     level2.y = L2_y_cursor
                     level2.appender(root, transpose)
                     L2_y_cursor += level2.dimensions(transpose)[0] + 10
+
+
+            # L1_PAGE_SIZING - implement page width limitation on L2s
+            # TODO: this isn't implemented it would be to make it nicer, but good enough for now
+            # for i in range (len(self.level2s)):
+            #     if not self.level2s[i].placed:
+            #         # place the first one, we're loading ordered, so this is
+            #         # guaranteed to be the widest
+            #         self.level2s[i].x = L2_x_cursor
+            #         self.level2s[i].y = L2_y_cursor
+            #         self.level2s[i].appender(root, transpose)
+            #         self.level2s[i].placed = True
+            #         L2_x_cursor += self.level2s[i].width(transpose) + 10
+            #         previous_level_height = self.level2s[i].height(transpose)
+            #         # place the rest
+            #         for j in range(i + 1, len(self.level2s)):
+            #             if not self.level2s[j].placed:
+            #                 if L2_x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
+            #                     # We're under limit, keep adding until we reach MAX_PAGE_WIDTH
+            #                     self.level2s[j].x = L2_x_cursor
+            #                     self.level2s[j].y = L2_y_cursor
+            #                     self.level2s[j].appender(root, transpose)
+            #                     self.level2s[j].placed = True
+            #                     L2_x_cursor += self.level2s[j].width(transpose) + 10
+            #                     if self.level2s[j].height(transpose) > previous_level_height:
+            #                         previous_level_height = self.level2s[j].height(transpose)
+            #         L2_x_cursor = self.x + 10
+            #         L2_y_cursor += previous_level_height + 10
 
 
 
@@ -233,6 +275,7 @@ class Level2:
         self.applications = []
         self.y = 0
         self.x = 0
+        self.placed = False
         self.vertical_spacing = 10
         self.horizontal_spacing = 10
         self.vertical_elements = 0
@@ -256,20 +299,20 @@ class Level2:
             return self.height(), self.width()
 
     def height(self, vertical_elements=None):
-        if vertical_elements is None:
-            vertical_elements = self.vertical_elements
+        #if vertical_elements is None:
+        #    vertical_elements = self.vertical_elements
         result = self.header_height
-        result += (vertical_elements * self.applications[0].height
-                   + (vertical_elements - 1) * self.vertical_spacing)
+        result += (self.vertical_elements * self.applications[0].height
+                   + (self.vertical_elements - 1) * self.vertical_spacing)
         return result
 
     def width(self, horizontal_elements=None):
-        if horizontal_elements is None:
-            horizontal_elements = self.horizontal_elements
+        #if horizontal_elements is None:
+        #    horizontal_elements = self.horizontal_elements
         # self.vertical_elements, self.horizontal_elements = get_layout_size(len(self.applications))
         result = 20  # borders
-        result += horizontal_elements * self.applications[0].width + (
-                horizontal_elements - 1) * self.horizontal_spacing
+        result += self.horizontal_elements * self.applications[0].width + (
+                self.horizontal_elements - 1) * self.horizontal_spacing
         return result
 
     def __str__(self):
@@ -761,64 +804,64 @@ def find_layer_id(root, name):
         return node.get('id')
 
 
-def render_L0(file):
-    try:
-        df = pd.read_csv(file, quoting=csv.QUOTE_ALL, delim_whitespace=False)
-    except Exception as e:
-        print(e)
-        print(f"Issue with file {file}")
-        return
-    level0s = []
-    for index, row in df.iterrows():
-        L0 = next((x for x in level0s if x.name == row['Level0']), None)
-        if L0 is None:
-            L0 = Level0(row['Level0'])
-            level0s.append(L0)
-        L1 = next((x for x in L0.level1s if x.name == row['Level1']), None)
-        if L1 is None:
-            L1 = Level1(row['Level1'])
-            L0.append(L1)
-        L2 = next((x for x in L1.level2s if x.name == row['Level2']), None)
-        if L2 is None:
-            L2 = Level2(row['Level2'])
-            L1.level2s.append(L2)
-        L2.append(SoftwareApplication(row['AppName']))
-
-    for level0 in level0s:
-        level0.size()
-
-
-    mxGraphModel = get_diagram_root()
-    root = mxGraphModel.find("root")
-    append_default_layers(root)
-
-    MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L0']
-
-    L0_x_cursor = 0
-    L0_y_cursor = 0
-
-    for i in range(len(level0s)):
-        if not level0s[i].placed:
-            level0s[i].appender(root,x=L0_x_cursor,y=L0_y_cursor)
-            level0s[i].placed = True
-            L0_x_cursor += level0s[i].width() + 10
-            previous_level_height = level0s[i].height
-            for j in range(i + 1, len(level0s)):
-                if not level0s[j].placed:
-                    if L0_x_cursor + level0s[j].width() <= MAX_PAGE_WIDTH:
-                        level0s[j].appender(root,x=L0_x_cursor,y=L0_y_cursor)
-                        level0s[j].placed = True
-                        L0_x_cursor += level0s[j].width() + 10
-                        if level0s[j].height() > previous_level_height:
-                            previous_level_height = level0s[j].height
-            L0_x_cursor = 0
-            L0_y_cursor += previous_level_height + 10
-
-    xml_to_file(mxGraphModel, file[:-4] + '.drawio')
-
-    drawio_shared_functions.pretty_print(mxGraphModel)
-
-    os.system('"C:\Program Files\draw.io\draw.io.exe" ' + file[:-4] + ".drawio")
+# def render_L0(file):
+#     try:
+#         df = pd.read_csv(file, quoting=csv.QUOTE_ALL, delim_whitespace=False)
+#     except Exception as e:
+#         print(e)
+#         print(f"Issue with file {file}")
+#         return
+#     level0s = []
+#     for index, row in df.iterrows():
+#         L0 = next((x for x in level0s if x.name == row['Level0']), None)
+#         if L0 is None:
+#             L0 = Level0(row['Level0'])
+#             level0s.append(L0)
+#         L1 = next((x for x in L0.level1s if x.name == row['Level1']), None)
+#         if L1 is None:
+#             L1 = Level1(row['Level1'])
+#             L0.append(L1)
+#         L2 = next((x for x in L1.level2s if x.name == row['Level2']), None)
+#         if L2 is None:
+#             L2 = Level2(row['Level2'])
+#             L1.level2s.append(L2)
+#         L2.append(SoftwareApplication(row['AppName']))
+#
+#     for level0 in level0s:
+#         level0.size()
+#
+#
+#     mxGraphModel = get_diagram_root()
+#     root = mxGraphModel.find("root")
+#     append_default_layers(root)
+#
+#     MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L0']
+#
+#     L0_x_cursor = 0
+#     L0_y_cursor = 0
+#
+#     for i in range(len(level0s)):
+#         if not level0s[i].placed:
+#             level0s[i].appender(root,x=L0_x_cursor,y=L0_y_cursor)
+#             level0s[i].placed = True
+#             L0_x_cursor += level0s[i].width() + 10
+#             previous_level_height = level0s[i].height
+#             for j in range(i + 1, len(level0s)):
+#                 if not level0s[j].placed:
+#                     if L0_x_cursor + level0s[j].width() <= MAX_PAGE_WIDTH:
+#                         level0s[j].appender(root,x=L0_x_cursor,y=L0_y_cursor)
+#                         level0s[j].placed = True
+#                         L0_x_cursor += level0s[j].width() + 10
+#                         if level0s[j].height() > previous_level_height:
+#                             previous_level_height = level0s[j].height
+#             L0_x_cursor = 0
+#             L0_y_cursor += previous_level_height + 10
+#
+#     xml_to_file(mxGraphModel, file[:-4] + '.drawio')
+#
+#     drawio_shared_functions.pretty_print(mxGraphModel)
+#
+#     os.system('"C:\Program Files\draw.io\draw.io.exe" ' + file[:-4] + ".drawio")
 
 
 def render_L1(file):
