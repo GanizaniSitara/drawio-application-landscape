@@ -8,7 +8,7 @@ IT Collateral Optimization,Lending,Fifty B,25,green,1,50,AWS,Windows,down,down,h
 IT Collateral Optimization,Secured Lending,Credit Gateway,18,red,3,10,Linux,Azure,up,up,http://www.gooogle.com,http://www.yahoo.com,2025-12
 IT Collateral Optimization,Secured Lending,Mortgage Union,15,red,4,85,OpenShift,WindowsVM,down,up,http://www.gooogle.com,http://www.yahoo.com,
 IT Collateral Optimization,Secured Lending,General Credit,18,red,4,10,Linux,Azure,up,up,http://www.gooogle.com,,
-IT Collateral Optimization,Secured Lending,BW IB Mortgage,15,red,2,85,OpenShift,WindowsVM,down,up,http://www.gooogle.com,http://www.yahoo.com,
+IT Collateral Optimization,Secured Lending,BW IB Mortgage with Incomprehensibly Long Name,15,red,2,85,OpenShift,WindowsVM,down,up,http://www.gooogle.com,http://www.yahoo.com,
 IT Collateral Optimization,Secured Lending,Mortgage Sales & Originations,22,amber,2,100,Linux,Windows,down,down,http://www.gooogle.com,,
 IT Collateral Optimization,Secured Lending,Vantage,24,green,1,80,Linux,Azure,up,up,http://www.gooogle.com,http://www.yahoo.com,2025-12
 IT Collateral Optimization,Secured Lending,Mortgages BTC - Trinity,78,red,2,15,Linux,WindowsVM,down,up,http://www.gooogle.com,,
@@ -16,11 +16,11 @@ IT Collateral Optimization,Secured Lending,HOGAN ILP,55,amber,0,40,OpenShift,Azu
 IT Collateral Optimization,Secured Lending,Second Change Journal,15,red,3,85,OpenShift,WindowsVM,down,up,http://www.gooogle.com,,
 IT Collateral Optimization,Secured Lending,Collateral Calc Engine,22,amber,4,100,Linux,Windows,down,down,http://www.gooogle.com,,
 IT Collateral Optimization,Secured Lending,Vantage Z,24,green,4,80,Linux,Azure,up,up,http://www.gooogle.com,,
-EQ AMD,Equities Pricing,Static Data Hub,45,green,4,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
-EQ AMD,Equities Pricing,Global Address Locator,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
-EQ AMD,Equities Pricing,SDS,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,2026-06
-EQ AMD,Equities Pricing,Pride,45,green,0,60,Windows,WindowsVM,up,up,http://www.gooogle.com,,
-EQ AMD,Equities Pricing,BIS Mapcite,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,2024-06
+Equities Market Discovery,Equities Pricing,Static Data Hub,45,green,4,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+Equities Market Discovery,Equities Pricing,Global Address Locator,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,
+Equities Market Discovery,Equities Pricing,SDS,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,2026-06
+Equities Market Discovery,Equities Pricing,Pride,45,green,0,60,Windows,WindowsVM,up,up,http://www.gooogle.com,,
+Equities Market Discovery,Equities Pricing,BIS Mapcite,45,green,3,60,Windows,WindowsVM,up,up,http://www.gooogle.com,http://www.yahoo.com,2024-06
 Products & Services,Lending,BPF Encore,25,red,3,30,Azure,Linux,up,up,http://www.gooogle.com,http://www.yahoo.com,
 Products & Services,Lending,ALS,25,amber,2,65,WindowsVM,OpenShift,down,up,http://www.gooogle.com,http://www.yahoo.com,
 Products & Services,Lending,BPF Centrac,25,green,4,75,AWS,Windows,down,down,http://www.gooogle.com,http://www.yahoo.com,

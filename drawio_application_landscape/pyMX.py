@@ -156,9 +156,13 @@ class Level1:
         # TODO: if parent is scaled then we should scale the child too, currently no flag on parent
         conditions_one = {'stringLenght': 9, 'softwareApplicationBoxes': 1}
         conditions_two = {'stringLenght': 18, 'softwareApplicationBoxes': 2}
+        conditions_three = {'stringLenght': 16, 'softwareApplicationBoxes': 1}
         logger.debug(f"Level1: {self.name} {self.width()} {self.height()} {style}")
         condition_one = len(self.name) > 9 and self.width() == SoftwareApplication.width + 4 * self.horizontal_spacing
         condition_two = len(self.name) > 18 and self.width() == 2 * SoftwareApplication.width + 5 * self.horizontal_spacing
+
+        # lots of text, only one columen
+        condition_three = len(self.name) > 9 and self.width() == SoftwareApplication.width + 4 * self.horizontal_spacing
 
         if condition_one or condition_two:
             adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L1']['fontSize'])
@@ -166,6 +170,12 @@ class Level1:
             # reduce font size for children too
             for level2 in self.level2s:
                 level2.parent_reduced_font_size = True
+
+        if condition_three:
+            adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L1']['fontSize'], steps=2)
+            style = ';'.join([f"fontSize={adjusted_font_size}" if 'fontSize=' in s else s for s in style.split(';')])
+
+
 
         width, height = self.dimensions(transpose=transpose, **kwargs)
 
@@ -282,6 +292,7 @@ class Level2:
         # depending on the text size
         case_one = {'length': 16, 'app_containers': 1}
         case_two = {'length': 24, 'app_containers': 2}
+        case_three = {'length': 22, 'app_containers': 1}
         condition_one = (len(self.name) > case_one['length']
                          and
                          self.width() == SoftwareApplication.width + (case_one['app_containers'] + 1)
@@ -289,6 +300,10 @@ class Level2:
         condition_two = (len(self.name) > case_two['length']
                          and self.width() == case_two['app_containers']
                             * SoftwareApplication.width + (case_two['app_containers'] + 1) * self.horizontal_spacing)
+        condition_three = (len(self.name) > case_three['length']
+                         and self.width() == case_three['app_containers']
+                         * SoftwareApplication.width + (case_three['app_containers'] + 1) * self.horizontal_spacing)
+
 
         if condition_one:
             # TODO: move to config and just use style builder
@@ -299,6 +314,9 @@ class Level2:
         elif condition_two:
             font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'])
             spacing = 1
+        elif condition_three:
+            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'],steps=3)
+            spacing = 1
         else:
             font_size = DiagramConfig.CONFIG['L2']['fontSize']
             spacing = 5
@@ -307,7 +325,8 @@ class Level2:
                                   value=self.name,
                                   style='rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=none;verticalAlign=top;spacing='
                                            + str(spacing) + ';fontStyle=0;fontSize='
-                                           + str(font_size) + ';fontFamily=Helvetica;',
+                                           + str(font_size) + ';fontFamily=Helvetica;'
+                                           + 'whiteSpace=wrap;',
                                   x=self.x, y=self.y, width=width, height=height)
         root.append(container)
 
@@ -365,14 +384,40 @@ class SoftwareApplication:
         return style
 
     def appender(self, root):
+
+        def app_style_builder(**kwargs):
+            defaults = {
+                'style': 'rounded=1',
+                'whiteSpace': 'wrap',
+                'html': '1',
+                'fontFamily': 'Expert Sans Regular',
+                'fontStyle': '0',
+                'verticalAlign': 'top',
+                'spacing': '11',
+                'arcSize': '4',
+            }
+            defaults.update(kwargs)
+            return ';'.join(f'{key}={value}' for key, value in defaults.items())
+
+        case_one = {'length': 32 }
+        condition_one = (len(self.name) > case_one['length'])
+
+        if condition_one:
+            # TODO: move to config and just use style builder
+            fontSize = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=2)
+        else:
+            fontSize = DiagramConfig.CONFIG['App']['fontSize']
+
+
+
         if self.kwargs['Link']:
             container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Applications'), value=self.name,
-                                                   style='rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=10;arcSize=4;',
+                                                   style=app_style_builder(fontSize=fontSize),
                                                    x=self.x, y=self.y, width=self.width, height=self.height,
                                                    link=self.kwargs['Link'])
         else:
             container = get_rectangle(parent=find_layer_id(root, 'Applications'), value=self.name,
-                                      style='rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=10;arcSize=4;',
+                                      style=app_style_builder(fontSize=fontSize),
                                       x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
 
@@ -381,28 +426,29 @@ class SoftwareApplication:
             # Controls
             if not (self.kwargs['Controls'] != self.kwargs['Controls']): # using pandas, returns NaN if empty
                 container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Controls'), value=self.name,
-                                                       style='rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#f9f7ed;strokeColor=#36393d;',
+                                                       style=app_style_builder(fontSize=fontSize, fillColor='#f9f7ed',strokeColor='#36393d;'),
                                                        x=self.x, y=self.y, width=self.width, height=self.height,
                                                        link=self.kwargs['Controls'])
                 root.append(container)
+                # this is link on top of the Controls pictogram
                 container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Controls'), value="CON",
                                                        style="pointerEvents=1;shadow=0;dashed=0;strokeColor=none;fillColor=#505050;labelPosition=right;verticalLabelPosition=middle;verticalAlign=middle;outlineConnect=0;align=left;shape=mxgraph.office.security.lock_with_key_security_blue;aspect=fixed;fontFamily=Expert Sans Regular;fontSize=16;fontStyle=1",
                                                        x=self.x + 100, y=self.y + 52, width="22.69", height="28", link=self.kwargs['Controls'])
                 root.append(container)
             else:
                 container = get_rectangle(parent=find_layer_id(root, 'Controls'), value=self.name,
-                                          style='rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=10;arcSize=4;',
+                                          style=app_style_builder(fontSize=fontSize),
                                           x=self.x, y=self.y, width=self.width, height=self.height)
                 root.append(container)
 
 
         # StatusRAG - colour of the shole application on the Strategy layer
         if self.kwargs['StatusRAG'] == 'red':
-            self.style = 'rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#F8CECC;strokeColor=#b85450;'
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#F8CECC',strokeColor='#b85450')
         elif self.kwargs['StatusRAG'] == 'amber':
-            self.style = 'rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#fff2cc;strokeColor=#d6b656;'
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#FFF2CC', strokeColor='#D6B656')
         elif self.kwargs['StatusRAG'] == 'green':
-            self.style = 'rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#D5E8D4;strokeColor=#82b366;'
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#D5E8D4', strokeColor='#82B366')
         container = get_rectangle(parent=find_layer_id(root, 'Strategy'), value=self.name,
                                   style=self.style,
                                   x=self.x, y=self.y, width=self.width, height=self.height)
@@ -410,15 +456,15 @@ class SoftwareApplication:
 
         # Resilience - colour of the resilience indicator
         if self.kwargs['Resilience'] == 0:
-            self.style = 'rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#fbc5cc;strokeColor=#10739e;'
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#ECF3FD', strokeColor='#6C8EBF')
         elif self.kwargs['Resilience'] == 1:
-            self.style = 'rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#f0bcc7;strokeColor=#10739e;'
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#F0BCC7', strokeColor='#10739E')
         elif self.kwargs['Resilience'] == 2:
-            self.style = 'rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#b1ddf0;strokeColor=#10739e;'
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#b1ddf0', strokeColor='#10739e')
         elif self.kwargs['Resilience'] == 3:
-            self.style = 'rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#f9f7ed;strokeColor=#36393d;'
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#f9f7ed', strokeColor='#36393d')
         elif self.kwargs['Resilience'] == 4:
-            self.style = 'rounded=1;whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize=14;fontStyle=0;verticalAlign=top;spacing=11;arcSize=4;fillColor=#dae8fc;strokeColor=#6c8ebf;'
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#dae8fc', strokeColor='#6c8ebf')
         else:
             raise Exception (f"Resilience value not in range 0-4 for {self.name} {self.kwargs['Resilience']}")
         container = get_rectangle(parent=find_layer_id(root, 'Resilience'), value=self.name,
@@ -656,8 +702,9 @@ def xml_to_file(mxGraphModel, filename='output.drawio'):
     child.text = data
     root.append(child)
 
+    filepath = ScriptConfig.ROOT_FOLDER + "\\" + filename
     tree = etree.ElementTree(root)
-    tree.write(filename)
+    tree.write(filepath)
 
 
 def get_rectangle(parent, x, y, width, height, **kwargs):
@@ -821,8 +868,9 @@ def render_L1(file):
 
     MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
 
-    if level1s[0].width() > MAX_PAGE_WIDTH:
-        MAX_PAGE_WIDTH = level1s[0].width()
+    # Commented out as we do want to limit width for print (as opposed to leave it wide for web)
+    #if level1s[0].width() > MAX_PAGE_WIDTH:
+    #    MAX_PAGE_WIDTH = level1s[0].width()
 
     L1_x_cursor = 0
     L1_y_cursor = 0
@@ -856,7 +904,7 @@ def render_L1(file):
     if DEBUG:
         drawio_shared_functions.pretty_print(mxGraphModel)
 
-    os.system(f'"{ScriptConfig.DRAWIO_PATH}" ' + file_name + ".drawio")
+    os.system(f'"{ScriptConfig.DRAWIO_EXECUTABLE}" ' + f"{ScriptConfig.ROOT_FOLDER}\\{file_name}.drawio")
 
 def render_partial_views(file_name, level1s):
     for level1 in level1s:
