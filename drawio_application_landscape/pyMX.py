@@ -23,7 +23,10 @@ import utils
 
 MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
 
+# currently set to to control page width limiting feature
+# restact of L2's if too wide to fit wihtin page width in one row
 EXPERIMENTAL = False
+
 
 # L0 rendering was intended to provide another layer (3rd) of aggregation, but currently it's not supported
 # class Level0:
@@ -201,6 +204,7 @@ class Level1:
         return 'Leve1: %s %s %s' % (self.name, self.x, self.y)
 
     def appender(self, root, transpose=False, **kwargs):
+        # TODO: not clear what the tree flag was used for, we don't seem to be calling it, ever
         if (not self.placed) and (not kwargs.get('tree')):
             self.x = kwargs['x']
             self.y = kwargs['y']
@@ -209,6 +213,7 @@ class Level1:
             return
         else:
             kwargs['tree'] = True
+
         self.level2s = sorted(self.level2s, key=lambda x: len(x.applications), reverse=True)
 
         style = DiagramConfig.get_style('L1')
@@ -261,50 +266,50 @@ class Level1:
                                                height=height)
         root.append(container)
 
+
         if kwargs['tree']:
+            # This is a starting point for L2 diagrams
             L2_x_cursor = self.x + 10
             L2_y_cursor = self.y + self.header_height
 
+            if not EXPERIMENTAL:
             # Last working code comment here ...
-            if not transpose:
-                for level2 in self.level2s:
-                    level2.x = L2_x_cursor
-                    level2.y = L2_y_cursor
-                    level2.appender(root)
-                    L2_x_cursor += level2.width() + 10
+                if not transpose:
+                    for level2 in self.level2s:
+                        level2.x = L2_x_cursor
+                        level2.y = L2_y_cursor
+                        level2.appender(root)
+                        L2_x_cursor += level2.width() + 10
+                else:
+                    for level2 in self.level2s:
+                        level2.x = L2_x_cursor
+                        level2.y = L2_y_cursor
+                        level2.appender(root, transpose)
+                        L2_y_cursor += level2.dimensions(transpose)[0] + 10
             else:
-                for level2 in self.level2s:
-                    level2.x = L2_x_cursor
-                    level2.y = L2_y_cursor
-                    level2.appender(root, transpose)
-                    L2_y_cursor += level2.dimensions(transpose)[0] + 10
+                for i in range(len(self.level2s)):
+                    if not self.level2s[i].placed:
+                        self.level2s[i].x = L2_x_cursor
+                        self.level2s[i].y = L2_y_cursor
+                        self.level2s[i].appender(root, transpose)
+                        self.level2s[i].placed = True
+                        L2_x_cursor += self.level2s[i].width(transpose) + 10
+                        previous_level_height = self.level2s[i].height(transpose)
+                        for j in range(i + 1, len(self.level2s)):
+                            if not self.level2s[j].placed:
+                                if L2_x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
+                                # We're under limit, keep adding until we reach MAX_PAGE_WIDTH
+                                    self.level2s[j].x = L2_x_cursor
+                                    self.level2s[j].y = L2_y_cursor
+                                    self.level2s[j].appender(root, transpose)
+                                    self.level2s[j].placed = True
+                                    L2_x_cursor += self.level2s[j].width(transpose) + 10
+                                    if self.level2s[j].height(transpose) > previous_level_height:
+                                        previous_level_height = self.level2s[j].height(transpose)
+                    L2_x_cursor = self.x + 10
+                    L2_y_cursor += previous_level_height + 10
 
-            # L1_PAGE_SIZING - implement page width limitation on L2s
-            # TODO: this isn't implemented it would be to make it nicer, but good enough for now
-            # for i in range (len(self.level2s)):
-            #     if not self.level2s[i].placed:
-            #         # place the first one, we're loading ordered, so this is
-            #         # guaranteed to be the widest
-            #         self.level2s[i].x = L2_x_cursor
-            #         self.level2s[i].y = L2_y_cursor
-            #         self.level2s[i].appender(root, transpose)
-            #         self.level2s[i].placed = True
-            #         L2_x_cursor += self.level2s[i].width(transpose) + 10
-            #         previous_level_height = self.level2s[i].height(transpose)
-            #         # place the rest
-            #         for j in range(i + 1, len(self.level2s)):
-            #             if not self.level2s[j].placed:
-            #                 if L2_x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
-            #                     # We're under limit, keep adding until we reach MAX_PAGE_WIDTH
-            #                     self.level2s[j].x = L2_x_cursor
-            #                     self.level2s[j].y = L2_y_cursor
-            #                     self.level2s[j].appender(root, transpose)
-            #                     self.level2s[j].placed = True
-            #                     L2_x_cursor += self.level2s[j].width(transpose) + 10
-            #                     if self.level2s[j].height(transpose) > previous_level_height:
-            #                         previous_level_height = self.level2s[j].height(transpose)
-            #         L2_x_cursor = self.x + 10
-            #         L2_y_cursor += previous_level_height + 10
+
 
     def render_partial_views(self, file_name):
         mxGraphModel = get_diagram_root()
