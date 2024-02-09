@@ -132,8 +132,7 @@ class Level1:
 
             if not node_id in processed:
                 x_cursor += self.level2s[i].width(transpose) + 10
-                current_height = self.level2s[i].height(transpose) + 10
-                max_height_in_row = max(max_height_in_row, current_height)
+                max_height_in_row = max(max_height_in_row, self.level2s[i].height(transpose) + 10)
                 processed.add(node_id)
 
                 for j in range(i + 1, len(self.level2s)):
@@ -141,17 +140,16 @@ class Level1:
                     if not node_id in processed:
                         if x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
                             x_cursor += self.level2s[j].width(transpose) + 10
-                            current_height = self.level2s[j].height(transpose)
-                            max_height_in_row = max(max_height_in_row, current_height)
+                            max_height_in_row = max(max_height_in_row, self.level2s[j].height(transpose) + 10)
+                            processed.add(node_id)
                         else:
                             x_cursor = 0
-                            total_height += max_height_in_row
-                            max_height_in_row = 0
                             break
 
-        total_height += max_height_in_row + 10 # add final margin
+            total_height += max_height_in_row
+            max_height_in_row = 0
 
-        return total_height + 40  # Adding 40 to account for some padding or margin
+        return total_height + self.header_height
 
 
     def width_new(self, transpose=False):
@@ -309,8 +307,8 @@ class Level1:
                                     L2_x_cursor += self.level2s[j].width(transpose) + 10
                                     if self.level2s[j].height(transpose) > previous_level_height:
                                         previous_level_height = self.level2s[j].height(transpose)
-                    L2_x_cursor = self.x + 10
-                    L2_y_cursor += previous_level_height + 10
+                        L2_x_cursor = self.x + 10
+                        L2_y_cursor += previous_level_height + 10
 
 
 
