@@ -130,7 +130,7 @@ class Level1:
 
             if not node_id in processed:
                 x_cursor += self.level2s[i].width(transpose) + 10
-                current_height = self.level2s[i].height(transpose) + 20
+                current_height = self.level2s[i].height(transpose) + 10
                 max_height_in_row = max(max_height_in_row, current_height)
                 processed.add(node_id)
 
@@ -145,8 +145,9 @@ class Level1:
                             x_cursor = 0
                             total_height += max_height_in_row
                             max_height_in_row = 0
+                            break
 
-        total_height += max_height_in_row  # Add the max height of the last row
+        total_height += max_height_in_row + 10 # add final margin
 
         return total_height + 40  # Adding 40 to account for some padding or margin
 
