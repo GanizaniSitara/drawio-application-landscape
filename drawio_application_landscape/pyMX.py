@@ -21,11 +21,13 @@ from config_script import ScriptConfig
 from config_diagram import DiagramConfig
 import utils
 
+# currently implemented to to control page width limiting feature
+# restact of L2's if too wide to fit wihtin page width in one row
+EXPERIMENTAL = ScriptConfig.EXPERIMENTAL
+
 MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
 
-# currently set to to control page width limiting feature
-# restact of L2's if too wide to fit wihtin page width in one row
-EXPERIMENTAL = False
+
 
 
 # L0 rendering was intended to provide another layer (3rd) of aggregation, but currently it's not supported
