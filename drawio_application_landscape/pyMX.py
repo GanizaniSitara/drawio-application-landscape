@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 
 from lxml import etree
 import string
@@ -20,71 +21,71 @@ from config_script import ScriptConfig
 from config_diagram import DiagramConfig
 import utils
 
+MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
 
+EXPERIMENTAL = False
 
-class Level0:
-    def __init__(self, name):
-        self.name = name
-        self.level1s = []
-        self.placed = False
-        self.x = 0
-        self.y = 0
-        self.max_L0_width = 1800
-        self.TITLE_SPACING = 70
-        self.L0_SCALING = 0.5
-
-    def append(self, app):
-        self.level1s.append(app)
-        self.level1s = sorted(self.level1s, key=lambda x: x.size(), reverse=True)
-
-    def width(self):
-        return 10 + sum(level1.dimensions(tree=False)[0] + 10 for level1 in self.level1s)
-
-    # def height(self):
-    #     return self.TITLE_SPACING + (level1.height() for level1 in self.level1s)
-
-    def size(self):
-        # print(f"Level0: {self.name} {len(self.level1s)} {size} {self.width()} {self.height()}")
-        return sum([x.size() for x in self.level1s])
-
-    def appender(self, root, transpose=False, **kwargs):
-        self.x = kwargs['x'] if kwargs['x'] != self.x else self.x
-        self.y = kwargs['y'] if kwargs['y'] != self.y else self.y
-
-        L1_x = self.x
-        L1_y = self.y
-        L1_x_cursor = L1_x + 10
-        L1_y_cursor = L1_y + self.TITLE_SPACING
-        previous_level_height = 0
-
-        for i in range(len(self.level1s)):
-            if not self.level1s[i].placed:
-                self.level1s[i].appender(root, x=L1_x_cursor, y=L1_y_cursor, tree=False)
-                L1_x_cursor += self.level1s[i].width(transpose=False, tree=False) * self.L0_SCALING  + 10
-                if self.level1s[i].height(tree=False) > previous_level_height:
-                    previous_level_height = self.level1s[i].height(tree=False) * self.L0_SCALING
-                for j in range(i + 1, len(self.level1s)):
-                    if not self.level1s[j].placed:
-                        if L1_x_cursor + self.level1s[j].width(transpose=False, tree=False) <= self.max_L0_width:
-                            self.level1s[j].appender(root, x=L1_x_cursor, y=L1_y_cursor, tree=False)
-                            L1_x_cursor += self.level1s[j].width(transpose=False, tree=False) * self.L0_SCALING + 10
-                            if self.level1s[j].height(tree=False) > previous_level_height:
-                                previous_level_height = self.level1s[i].height(tree=False) * self.L0_SCALING
-                L1_x_cursor = 0
-                L1_y_cursor += previous_level_height + 10
-
-        self.height = L1_y_cursor - L1_y
-
-        container = get_rectangle(parent=find_layer_id(root, 'L0'), value=self.name,
-                                  style=';whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize='
-                                           + '48'
-                                           + ';fontColor=#333333;strokeColor=none;fillColor=#888888;verticalAlign=top;spacing='
-                                           + '2' + ';fontStyle=0',
-                                  x=L1_x, y=L1_y, width=self.width(), height=self.height)
-        root.append(container)
-
-        # for level1 in self.level1s:
-        #     level1.appender(root, x=self.x, y=self.y, tree=False)
+# L0 rendering was intended to provide another layer (3rd) of aggregation, but currently it's not supported
+# class Level0:
+#     def __init__(self, name):
+#         self.name = name
+#         self.level1s = []
+#         self.placed = False
+#         self.x = 0
+#         self.y = 0
+#         self.max_L0_width = 1800
+#         self.TITLE_SPACING = 70
+#         self.L0_SCALING = 0.5
+#
+#     def append(self, app):
+#         self.level1s.append(app)
+#         self.level1s = sorted(self.level1s, key=lambda x: x.size(), reverse=True)
+#
+#     def width(self):
+#         return 10 + sum(level1.dimensions(tree=False)[0] + 10 for level1 in self.level1s)
+#
+#     # def height(self):
+#     #     return self.TITLE_SPACING + (level1.height() for level1 in self.level1s)
+#
+#     def size(self):
+#         # print(f"Level0: {self.name} {len(self.level1s)} {size} {self.width()} {self.height()}")
+#         return sum([x.size() for x in self.level1s])
+#
+#     def appender(self, root, transpose=False, **kwargs):
+#         self.x = kwargs['x'] if kwargs['x'] != self.x else self.x
+#         self.y = kwargs['y'] if kwargs['y'] != self.y else self.y
+#
+#         L1_x = self.x
+#         L1_y = self.y
+#         L1_x_cursor = L1_x + 10
+#         L1_y_cursor = L1_y + self.TITLE_SPACING
+#         previous_level_height = 0
+#
+#         for i in range(len(self.level1s)):
+#             if not self.level1s[i].placed:
+#                 self.level1s[i].appender(root, x=L1_x_cursor, y=L1_y_cursor, tree=False)
+#                 L1_x_cursor += self.level1s[i].width(transpose=False, tree=False) * self.L0_SCALING  + 10
+#                 if self.level1s[i].height(tree=False) > previous_level_height:
+#                     previous_level_height = self.level1s[i].height(tree=False) * self.L0_SCALING
+#                 for j in range(i + 1, len(self.level1s)):
+#                     if not self.level1s[j].placed:
+#                         if L1_x_cursor + self.level1s[j].width(transpose=False, tree=False) <= self.max_L0_width:
+#                             self.level1s[j].appender(root, x=L1_x_cursor, y=L1_y_cursor, tree=False)
+#                             L1_x_cursor += self.level1s[j].width(transpose=False, tree=False) * self.L0_SCALING + 10
+#                             if self.level1s[j].height(tree=False) > previous_level_height:
+#                                 previous_level_height = self.level1s[i].height(tree=False) * self.L0_SCALING
+#                 L1_x_cursor = 0
+#                 L1_y_cursor += previous_level_height + 10
+#
+#         self.height = L1_y_cursor - L1_y
+#
+#         container = get_rectangle(parent=find_layer_id(root, 'L0'), value=self.name,
+#                                   style=';whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize='
+#                                            + '48'
+#                                            + ';fontColor=#333333;strokeColor=none;fillColor=#888888;verticalAlign=top;spacing='
+#                                            + '2' + ';fontStyle=0',
+#                                   x=L1_x, y=L1_y, width=self.width(), height=self.height)
+#         root.append(container)
 
 
 class Level1:
@@ -100,13 +101,13 @@ class Level1:
         self.header_height = DiagramConfig.HEADER_HEIGHT['L1']
         self.reduced_font_size = False
 
-    # def number_of_elements(self):
-    #     return self.vertical * self.horizontal
-
     def size(self):
         return sum([level2.size() for level2 in self.level2s])
 
-    def height(self, transpose=False, **kwargs):
+    def height(self, transpose=False):
+        if EXPERIMENTAL:
+            return self.height_new(transpose)
+
         result = self.header_height
         if not transpose:
             result += max(level2.dimensions(transpose=transpose)[0] for level2 in self.level2s) + self.vertical_spacing
@@ -115,20 +116,69 @@ class Level1:
                 result += level2.dimensions(transpose=transpose)[0] + self.vertical_spacing
         return result
 
-    def max_width_fit(self):
-        # objects already sorted
-        total_width = 0
-        rows = 1
-        for obj in self.level2s:
-            if total_width + obj.width() > DiagramConfig.MAX_PAGE_WIDTH['L1']:
-                rows += 1
-                total_width = obj.width()  # Start new row with this object's width
-            else:
-                total_width += obj.width()
-        return rows
+    def height_new(self, transpose=False):
+        processed = set()
+        total_height = 0
+        x_cursor = 0
+        max_height_in_row = 0
+
+        for i in range(len(self.level2s)):
+            node_id = id(self.level2s[i])
+
+            if not node_id in processed:
+                x_cursor += self.level2s[i].width(transpose) + 10
+                current_height = self.level2s[i].height(transpose) + 20
+                max_height_in_row = max(max_height_in_row, current_height)
+                processed.add(node_id)
+
+                for j in range(i + 1, len(self.level2s)):
+                    node_id = id(self.level2s[j])
+                    if not node_id in processed:
+                        if x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
+                            x_cursor += self.level2s[j].width(transpose) + 10
+                            current_height = self.level2s[j].height(transpose)
+                            max_height_in_row = max(max_height_in_row, current_height)
+                        else:
+                            x_cursor = 0
+                            total_height += max_height_in_row
+                            max_height_in_row = 0
+
+        total_height += max_height_in_row  # Add the max height of the last row
+
+        return total_height + 40  # Adding 40 to account for some padding or margin
 
 
-    def width(self, transpose=False, **kwargs):
+    def width_new(self, transpose=False):
+        # new implementation that runs the dynamic build of L2 to work out page size packing
+        # the sequence is the same as what places items on the page in L1.appender(), can be factored out later
+
+        processed = set()
+        max_width = 0
+        x_cursor = 0
+
+        for i in range(len(self.level2s)):
+            node_id = id(self.level2s[i])
+
+            if not node_id in processed:
+                x_cursor += self.level2s[i].width(transpose) + 10
+                previous_level_height = self.level2s[i].height(transpose)
+                processed.add(node_id)
+
+                # keep packing while we're under the limit
+                for j in range(i + 1, len(self.level2s)):
+                    node_id = id(self.level2s[j])
+                    if not node_id in processed:
+                        if x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
+                            x_cursor += self.level2s[j].width(transpose) + 10
+                max_width = max(x_cursor, max_width)
+                x_cursor = 0
+
+        return max_width + 10
+
+    def width(self, transpose=False):
+        if EXPERIMENTAL:
+            return self.width_new()
+
         result = self.horizontal_spacing
         if not transpose:
             for level2 in self.level2s:
@@ -148,7 +198,7 @@ class Level1:
         return max(level2.width() for level2 in self.level2s)
 
     def __str__(self):
-        return 'Leve1: %s %s %s %s' % (self.name, self.vertical, self.horizontal)
+        return 'Leve1: %s %s %s' % (self.name, self.x, self.y)
 
     def appender(self, root, transpose=False, **kwargs):
         if (not self.placed) and (not kwargs.get('tree')):
@@ -178,7 +228,7 @@ class Level1:
         condition_three = len(self.name) > 9 and self.width() == SoftwareApplication.width + 4 * self.horizontal_spacing
 
         if condition_one or condition_two:
-            adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L1']['fontSize'])
+            adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L1']['fontSize'], steps=2)
             style = ';'.join([f"fontSize={adjusted_font_size}" if 'fontSize=' in s else s for s in style.split(';')])
             # reduce font size for children too
             for level2 in self.level2s:
@@ -203,7 +253,7 @@ class Level1:
 
         container = get_rectangle_link_overlay(parent=find_layer_id(root, 'LinkOverlay'),
                                                value="",
-                                               link="/" + (self.name).replace(" ", "+") + "+Detail",
+                                               link="/" + self.name.replace(" ", "+") + "+Detail",
                                                style='fillColor=none;strokeColor=none;',
                                                x=self.x,
                                                y=self.y,
@@ -217,18 +267,17 @@ class Level1:
 
             # Last working code comment here ...
             if not transpose:
-                    for level2 in self.level2s:
-                        level2.x = L2_x_cursor
-                        level2.y = L2_y_cursor
-                        level2.appender(root)
-                        L2_x_cursor += level2.width() + 10
+                for level2 in self.level2s:
+                    level2.x = L2_x_cursor
+                    level2.y = L2_y_cursor
+                    level2.appender(root)
+                    L2_x_cursor += level2.width() + 10
             else:
                 for level2 in self.level2s:
                     level2.x = L2_x_cursor
                     level2.y = L2_y_cursor
                     level2.appender(root, transpose)
                     L2_y_cursor += level2.dimensions(transpose)[0] + 10
-
 
             # L1_PAGE_SIZING - implement page width limitation on L2s
             # TODO: this isn't implemented it would be to make it nicer, but good enough for now
@@ -256,8 +305,6 @@ class Level1:
             #                         previous_level_height = self.level2s[j].height(transpose)
             #         L2_x_cursor = self.x + 10
             #         L2_y_cursor += previous_level_height + 10
-
-
 
     def render_partial_views(self, file_name):
         mxGraphModel = get_diagram_root()
@@ -288,6 +335,7 @@ class Level2:
 
     def append(self, app):
         self.applications.append(app)
+        self.applications.sort()
         self.vertical_elements, self.horizontal_elements = get_layout_size(len(self.applications))
 
     def dimensions(self, transpose=False):
@@ -298,25 +346,20 @@ class Level2:
         else:
             return self.height(), self.width()
 
-    def height(self, vertical_elements=None):
-        #if vertical_elements is None:
-        #    vertical_elements = self.vertical_elements
+    def height(self, transpose=False):
         result = self.header_height
         result += (self.vertical_elements * self.applications[0].height
                    + (self.vertical_elements - 1) * self.vertical_spacing)
         return result
 
-    def width(self, horizontal_elements=None):
-        #if horizontal_elements is None:
-        #    horizontal_elements = self.horizontal_elements
-        # self.vertical_elements, self.horizontal_elements = get_layout_size(len(self.applications))
+    def width(self, transpose=False):
         result = 20  # borders
         result += self.horizontal_elements * self.applications[0].width + (
                 self.horizontal_elements - 1) * self.horizontal_spacing
         return result
 
     def __str__(self):
-        return 'Level2: %s %s %s %s' % (self.level1, self.level2, self.height, self.width)
+        return 'Level2: %s %s %s' % (self.name, self.height, self.width)
 
     def placements(self, transpose=False):
         if transpose:
@@ -350,7 +393,7 @@ class Level2:
 
         if condition_one:
             # TODO: move to config and just use style builder
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'],steps=3)
+            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'], steps=3)
             spacing = 1
             # adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'])
             # style = ';'.join([f"fontSize={adjusted_font_size}" if 'fontSize=' in s else s for s in style.split(';')])
@@ -358,7 +401,7 @@ class Level2:
             font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'])
             spacing = 1
         elif condition_three:
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'],steps=3)
+            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'], steps=3)
             spacing = 1
         else:
             font_size = DiagramConfig.CONFIG['L2']['fontSize']
@@ -367,9 +410,9 @@ class Level2:
         container = get_rectangle(parent=find_layer_id(root, 'Containers'),
                                   value=self.name,
                                   style='rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=none;verticalAlign=top;spacing='
-                                           + str(spacing) + ';fontStyle=0;fontSize='
-                                           + str(font_size) + ';fontFamily=Helvetica;'
-                                           + 'whiteSpace=wrap;',
+                                       + str(spacing) + ';fontStyle=0;fontSize='
+                                       + str(font_size) + ';fontFamily=Helvetica;'
+                                       + 'whiteSpace=wrap;',
                                   x=self.x, y=self.y, width=width, height=height)
         root.append(container)
 
@@ -409,25 +452,23 @@ class SoftwareApplication:
         else:
             self.height = 50
 
+    def __lt__(self, other):
+        return self.name < other.name
 
+    class HostingPattern(Enum):
+        AZURE = 'verticalLabelPosition=bottom;html=1;verticalAlign=top;align=center;strokeColor=none;fillColor=#00BEF2;shape=mxgraph.azure.azure_instance;fontFamily=Expert Sans Regular;aspect=fixed;'
+        AWS = 'dashed=0;outlineConnect=0;html=1;align=center;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.webicons.amazon;gradientColor=#DFDEDE;strokeColor=#FFFFFF;strokeWidth=1;fontFamily=Expert Sans Regular;aspect=fixed;'
+        LINUX = "pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#DF8C42;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam2.linux;fontFamily=Expert Sans Regular;aspect=fixed;"
+        WINDOWS = "shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#EF8F21;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.ms_windows;fontFamily=Expert Sans Regular;"
+        OPENSHIFT = "aspect=fixed;html=1;points=[];align=center;image;fontSize=12;image=img/lib/mscae/OpenShift.svg;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333333;"
+        WINDOWSVM = "shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#4495D1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.vm_windows;fontFamily=Expert Sans Regular;aspect=fixed;"
 
     def get_style_for_hosting_pattern(self, hosting_pattern):
-        if hosting_pattern == 'Azure':
-            style = 'verticalLabelPosition=bottom;html=1;verticalAlign=top;align=center;strokeColor=none;fillColor=#00BEF2;shape=mxgraph.azure.azure_instance;fontFamily=Expert Sans Regular;aspect=fixed;'
-        elif hosting_pattern == 'AWS':
-            style = 'dashed=0;outlineConnect=0;html=1;align=center;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.webicons.amazon;gradientColor=#DFDEDE;strokeColor=#FFFFFF;strokeWidth=1;fontFamily=Expert Sans Regular;aspect=fixed;'
-        elif hosting_pattern == 'Linux':
-            style = "pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#DF8C42;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam2.linux;fontFamily=Expert Sans Regular;aspect=fixed;"
-        elif hosting_pattern == 'Windows':
-            style = "shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#EF8F21;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.ms_windows;fontFamily=Expert Sans Regular;"
-        elif hosting_pattern == 'OpenShift':
-            style = "aspect=fixed;html=1;points=[];align=center;image;fontSize=12;image=img/lib/mscae/OpenShift.svg;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333333;"
-        elif hosting_pattern == 'WindowsVM':
-            style = "shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#4495D1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.vm_windows;fontFamily=Expert Sans Regular;aspect=fixed;"
-        return style
+        return self.HostingPattern[hosting_pattern.upper()].value
 
     def appender(self, root):
 
+        # TODO: make into a Class
         def app_style_builder(**kwargs):
             defaults = {
                 'style': 'rounded=1',
@@ -442,15 +483,14 @@ class SoftwareApplication:
             defaults.update(kwargs)
             return ';'.join(f'{key}={value}' for key, value in defaults.items())
 
-        case_one = {'length': 32 }
+        case_one = {'length': 32}
         condition_one = (len(self.name) > case_one['length'])
 
         if condition_one:
             # TODO: move to config and just use style builder
-            fontSize = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=2)
+            fontSize = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=3)
         else:
             fontSize = DiagramConfig.CONFIG['App']['fontSize']
-
 
 
         if self.kwargs['Link']:
@@ -469,7 +509,8 @@ class SoftwareApplication:
             # Controls
             if not (self.kwargs['Controls'] != self.kwargs['Controls']): # using pandas, returns NaN if empty
                 container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Controls'), value=self.name,
-                                                       style=app_style_builder(fontSize=fontSize, fillColor='#f9f7ed',strokeColor='#36393d;'),
+                                                       style=app_style_builder(fontSize=fontSize, fillColor='#f9f7ed',
+                                                                               strokeColor='#36393d;'),
                                                        x=self.x, y=self.y, width=self.width, height=self.height,
                                                        link=self.kwargs['Controls'])
                 root.append(container)
@@ -484,10 +525,9 @@ class SoftwareApplication:
                                           x=self.x, y=self.y, width=self.width, height=self.height)
                 root.append(container)
 
-
         # StatusRAG - colour of the shole application on the Strategy layer
         if self.kwargs['StatusRAG'] == 'red':
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#F8CECC',strokeColor='#b85450')
+            self.style = app_style_builder(fontSize=fontSize, fillColor='#F8CECC', strokeColor='#b85450')
         elif self.kwargs['StatusRAG'] == 'amber':
             self.style = app_style_builder(fontSize=fontSize, fillColor='#FFF2CC', strokeColor='#D6B656')
         elif self.kwargs['StatusRAG'] == 'green':
@@ -597,9 +637,6 @@ class SoftwareApplication:
             root.append(container)
 
 
-
-
-
 def get_diagram_root():
     mxGraphModel = etree.Element('mxGraphModel')
     mxGraphModel.set('dx', '981')
@@ -642,17 +679,11 @@ def create_layer(name):
 
 def append_default_layers(root):
     # back to front order, lowest layer first
-    layers = {}
-    layers['L0'] = create_layer('L0')
-    layers['Containers'] = create_layer('Containers')
-    layers['Applications'] = create_layer('Applications')
-    layers['Strategy'] = create_layer('Strategy')
-    layers['Controls'] = create_layer('Controls')
-    layers['Resilience'] = create_layer('Resilience')
-    layers['Hosting'] = create_layer('Hosting')
-    layers['Metrics'] = create_layer('Metrics')
-    layers['TransactionCycle'] = create_layer('TransactionCycle')
-    layers['LinkOverlay'] = create_layer('LinkOverlay')
+    layers = {'L0': create_layer('L0'), 'Containers': create_layer('Containers'),
+              'Applications': create_layer('Applications'), 'Strategy': create_layer('Strategy'),
+              'Controls': create_layer('Controls'), 'Resilience': create_layer('Resilience'),
+              'Hosting': create_layer('Hosting'), 'Metrics': create_layer('Metrics'),
+              'TransactionCycle': create_layer('TransactionCycle'), 'LinkOverlay': create_layer('LinkOverlay')}
     for layer in layers.values():
         root.append(layer)
     return root
@@ -910,7 +941,7 @@ def render_L1(file):
 
     level1s = sorted(level1s, key=lambda x: x.width(), reverse=True)
 
-    MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
+
 
     # Commented out as we do want to limit width for print (as opposed to leave it wide for web)
     #if level1s[0].width() > MAX_PAGE_WIDTH:
@@ -957,11 +988,15 @@ def render_partial_views(file_name, level1s):
             level2.render_partial_views(file_name, level1.name)
 
 
-def main(render,file):
-    if render == 'L1':
-        render_L1(file)
-    elif render == 'L0':
-        render_L0(file)
+def main(file):
+    render_L1(file)
+
+# L0 rendering is currently not supported
+# def main(render,file):
+#     if render == 'L1':
+#         render_L1(file)
+#     elif render == 'L0':
+#         render_L0(file)
 
 
 if __name__ == "__main__":
@@ -969,18 +1004,18 @@ if __name__ == "__main__":
     if sys.stdin and sys.stdin.isatty():
         print("Running interactively")
         DEBUG = False
-        loglevel = logging.basicConfig(level=logging.INFO,
+        logging.basicConfig(level=logging.INFO,
                                        format='%(asctime)s.%(msecs)03d,%(levelname)-5s,%(name)s,Line %(lineno)d,%(message)s',
                                        datefmt='%Y-%m-%dT%H:%M:%S')
         logger = logging.getLogger(__name__)
-        main(sys.argv[1], sys.argv[2])
+        main(sys.argv[1])
     elif sys.gettrace():
         print("Running in debugger")
         DEBUG = True
-        loglevel = logging.basicConfig(level=logging.DEBUG,
+        logging.basicConfig(level=logging.DEBUG,
                                        format='%(asctime)s.%(msecs)03d,%(levelname)-5s,%(name)s,Line %(lineno)d,%(message)s',
                                        datefmt='%Y-%m-%dT%H:%M:%S')
         logger = logging.getLogger(__name__)
-        main(sys.argv[1],sys.argv[2])
+        main(sys.argv[1])
     else:
         print("Running as import")

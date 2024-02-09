@@ -11,7 +11,7 @@ Clone the repo then:
 2) Run the following command to generate the application landscape map
 
 ```bash
-python pyMX.py L1 examples\Application_Diagram_Builder.csv
+python pyMX.py examples\Application_Diagram_Builder.csv
 ```
 
 ### Experiments
