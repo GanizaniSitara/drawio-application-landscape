@@ -205,7 +205,7 @@ class Level1:
         return 'Leve1: %s %s %s' % (self.name, self.x, self.y)
 
     def appender(self, root, transpose=False, **kwargs):
-        # TODO: not clear what the tree flag was used for, we don't seem to be calling it, ever
+        # TODO: not clear what the tree flag was used for, we don't seem to be calling it, ever, not true actually we do from code
         if (not self.placed) and (not kwargs.get('tree')):
             self.x = kwargs['x']
             self.y = kwargs['y']
@@ -367,6 +367,8 @@ class Level2:
     def __str__(self):
         return 'Level2: %s %s %s' % (self.name, self.height, self.width)
 
+
+
     def placements(self, transpose=False):
         if transpose:
             return list(it.product(range(self.vertical_elements), range(self.horizontal_elements)))
@@ -376,42 +378,27 @@ class Level2:
     def appender(self, root, transpose=False):
         height, width = self.dimensions(transpose)
 
-        # Define the conditions for adjusting font size based on the length of the name and horizontal space
-        # this is related to font size, but we haven't worked out the ratios, so hardcoded for now
-        # TODO: cleanup and move to config
-        # TODO: if parent is scaled then we should scale the child too, currently no flag on parent
-        # TODO: also looks ugly both as code and in the diagram, we might not even need two different conditions
-        # depending on the text size
-        case_one = {'length': 16, 'app_containers': 1}
-        case_two = {'length': 24, 'app_containers': 2}
-        case_three = {'length': 22, 'app_containers': 1}
-        condition_one = (len(self.name) > case_one['length']
-                         and
-                         self.width() == SoftwareApplication.width + (case_one['app_containers'] + 1)
-                            * self.horizontal_spacing)
-        condition_two = (len(self.name) > case_two['length']
-                         and self.width() == case_two['app_containers']
-                            * SoftwareApplication.width + (case_two['app_containers'] + 1) * self.horizontal_spacing)
-        condition_three = (len(self.name) > case_three['length']
-                         and self.width() == case_three['app_containers']
-                         * SoftwareApplication.width + (case_three['app_containers'] + 1) * self.horizontal_spacing)
+        # TODO: MEDIUM - We're rendering in alphabetical order columns-wise, but rows-wise would be better or make it a param
+        # TODO: LOW - If parent is scaled then we should scale the child too, currently no flag on parent
+        # TODO: LOW - Maybe move to config?
 
+        conditions = [
+            {'length': 24, 'app_containers': 2, 'font_size_step_down': 1, 'spacing': 1},
+            {'length': 22, 'app_containers': 1, 'font_size_step_down': 3, 'spacing': 1},
+            {'length': 16, 'app_containers': 1, 'font_size_step_down': 3, 'spacing': 1},
+        ]
 
-        if condition_one:
-            # TODO: move to config and just use style builder
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'], steps=3)
-            spacing = 1
-            # adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'])
-            # style = ';'.join([f"fontSize={adjusted_font_size}" if 'fontSize=' in s else s for s in style.split(';')])
-        elif condition_two:
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'])
-            spacing = 1
-        elif condition_three:
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'], steps=3)
-            spacing = 1
-        else:
-            font_size = DiagramConfig.CONFIG['L2']['fontSize']
-            spacing = 5
+        font_size = DiagramConfig.CONFIG['L2']['fontSize']
+        spacing = 5
+
+        for condition in conditions:
+            if len(self.name) > condition['length'] and self.width() == SoftwareApplication.width + (
+                    condition['app_containers'] + 1) * self.horizontal_spacing:
+                font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L2']['fontSize'],
+                                                   steps=condition['font_size_step_down'])
+                spacing = condition['spacing']
+                break
+
 
         container = get_rectangle(parent=find_layer_id(root, 'Containers'),
                                   value=self.name,
@@ -474,6 +461,23 @@ class SoftwareApplication:
 
     def appender(self, root):
 
+        class StyleBuilder:
+            @staticmethod
+            def get_style(**kwargs):
+                defaults = {
+                    'style': 'rounded=1',
+                    'whiteSpace': 'wrap',
+                    'html': '1',
+                    'fontFamily': 'Expert Sans Regular',
+                    'fontStyle': '0',
+                    'verticalAlign': 'top',
+                    'spacing': '11',
+                    'arcSize': '4',
+                }
+                defaults.update(kwargs)
+                return ';'.join(f'{key}={value}' for key, value in defaults.items())
+
+
         # TODO: make into a Class
         def app_style_builder(**kwargs):
             defaults = {
@@ -489,24 +493,24 @@ class SoftwareApplication:
             defaults.update(kwargs)
             return ';'.join(f'{key}={value}' for key, value in defaults.items())
 
-        case_one = {'length': 32}
+        case_one = {'length': 23}
         condition_one = (len(self.name) > case_one['length'])
 
         if condition_one:
             # TODO: move to config and just use style builder
-            fontSize = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=3)
+            fontSize = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=2)
         else:
             fontSize = DiagramConfig.CONFIG['App']['fontSize']
 
 
         if self.kwargs['Link']:
             container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Applications'), value=self.name,
-                                                   style=app_style_builder(fontSize=fontSize),
+                                                   style=StyleBuilder.get_style(fontSize=fontSize),
                                                    x=self.x, y=self.y, width=self.width, height=self.height,
                                                    link=self.kwargs['Link'])
         else:
             container = get_rectangle(parent=find_layer_id(root, 'Applications'), value=self.name,
-                                      style=app_style_builder(fontSize=fontSize),
+                                      style=StyleBuilder.get_style(fontSize=fontSize),
                                       x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
 
@@ -515,7 +519,7 @@ class SoftwareApplication:
             # Controls
             if not (self.kwargs['Controls'] != self.kwargs['Controls']): # using pandas, returns NaN if empty
                 container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Controls'), value=self.name,
-                                                       style=app_style_builder(fontSize=fontSize, fillColor='#f9f7ed',
+                                                       style=StyleBuilder.get_style(fontSize=fontSize, fillColor='#f9f7ed',
                                                                                strokeColor='#36393d;'),
                                                        x=self.x, y=self.y, width=self.width, height=self.height,
                                                        link=self.kwargs['Controls'])
@@ -527,39 +531,45 @@ class SoftwareApplication:
                 root.append(container)
             else:
                 container = get_rectangle(parent=find_layer_id(root, 'Controls'), value=self.name,
-                                          style=app_style_builder(fontSize=fontSize),
+                                          style=StyleBuilder.get_style(fontSize=fontSize),
                                           x=self.x, y=self.y, width=self.width, height=self.height)
                 root.append(container)
 
         # StatusRAG - colour of the shole application on the Strategy layer
-        if self.kwargs['StatusRAG'] == 'red':
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#F8CECC', strokeColor='#b85450')
-        elif self.kwargs['StatusRAG'] == 'amber':
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#FFF2CC', strokeColor='#D6B656')
-        elif self.kwargs['StatusRAG'] == 'green':
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#D5E8D4', strokeColor='#82B366')
+        status_colors = {
+            'red': {'fillColor': '#F8CECC', 'strokeColor': '#b85450'},
+            'amber': {'fillColor': '#FFF2CC', 'strokeColor': '#D6B656'},
+            'green': {'fillColor': '#D5E8D4', 'strokeColor': '#82B366'}
+        }
+        status = self.kwargs['StatusRAG']
+        if status in status_colors:
+            self.style = StyleBuilder.get_style(fontSize=fontSize, **status_colors[status])
+
         container = get_rectangle(parent=find_layer_id(root, 'Strategy'), value=self.name,
                                   style=self.style,
                                   x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
 
         # Resilience - colour of the resilience indicator
-        if self.kwargs['Resilience'] == 0:
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#ECF3FD', strokeColor='#6C8EBF')
-        elif self.kwargs['Resilience'] == 1:
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#F0BCC7', strokeColor='#10739E')
-        elif self.kwargs['Resilience'] == 2:
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#b1ddf0', strokeColor='#10739e')
-        elif self.kwargs['Resilience'] == 3:
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#f9f7ed', strokeColor='#36393d')
-        elif self.kwargs['Resilience'] == 4:
-            self.style = app_style_builder(fontSize=fontSize, fillColor='#dae8fc', strokeColor='#6c8ebf')
+        resilience_colors = {
+            0: {'fillColor': '#ECF3FD', 'strokeColor': '#6C8EBF'},
+            1: {'fillColor': '#F0BCC7', 'strokeColor': '#10739E'},
+            2: {'fillColor': '#b1ddf0', 'strokeColor': '#10739e'},
+            3: {'fillColor': '#f9f7ed', 'strokeColor': '#36393d'},
+            4: {'fillColor': '#dae8fc', 'strokeColor': '#6c8ebf'}
+        }
+
+        resilience = self.kwargs['Resilience']
+        if resilience in resilience_colors:
+            self.style = StyleBuilder.get_style(fontSize=fontSize, **resilience_colors[resilience])
         else:
-            raise Exception (f"Resilience value not in range 0-4 for {self.name} {self.kwargs['Resilience']}")
+            raise Exception(f"Resilience value not in range 0-4 for {self.name} {resilience}")
+
         container = get_rectangle(parent=find_layer_id(root, 'Resilience'), value=self.name,
                                   style=self.style,
                                   x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
+
 
         # TC - TC indicator
         container = get_rectangle(parent=find_layer_id(root, 'TransactionCycle'), value=str(self.kwargs['TC']),
