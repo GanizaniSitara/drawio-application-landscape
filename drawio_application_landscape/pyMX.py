@@ -477,40 +477,26 @@ class SoftwareApplication:
                 defaults.update(kwargs)
                 return ';'.join(f'{key}={value}' for key, value in defaults.items())
 
+        # TODO: move to config, including step reduction
+        condition_name_over_26 = (len(self.name) > 26)
+        condition_name_over_50 = (len(self.name) > 50)
 
-        # TODO: make into a Class
-        def app_style_builder(**kwargs):
-            defaults = {
-                'style': 'rounded=1',
-                'whiteSpace': 'wrap',
-                'html': '1',
-                'fontFamily': 'Expert Sans Regular',
-                'fontStyle': '0',
-                'verticalAlign': 'top',
-                'spacing': '11',
-                'arcSize': '4',
-            }
-            defaults.update(kwargs)
-            return ';'.join(f'{key}={value}' for key, value in defaults.items())
-
-        case_one = {'length': 23}
-        condition_one = (len(self.name) > case_one['length'])
-
-        if condition_one:
-            # TODO: move to config and just use style builder
-            fontSize = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=2)
+        if condition_name_over_26:
+            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=2)
+        elif condition_name_over_50:
+            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=3)
         else:
-            fontSize = DiagramConfig.CONFIG['App']['fontSize']
+            font_size = DiagramConfig.CONFIG['App']['fontSize']
 
 
         if self.kwargs['Link']:
             container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Applications'), value=self.name,
-                                                   style=StyleBuilder.get_style(fontSize=fontSize),
+                                                   style=StyleBuilder.get_style(fontSize=font_size),
                                                    x=self.x, y=self.y, width=self.width, height=self.height,
                                                    link=self.kwargs['Link'])
         else:
             container = get_rectangle(parent=find_layer_id(root, 'Applications'), value=self.name,
-                                      style=StyleBuilder.get_style(fontSize=fontSize),
+                                      style=StyleBuilder.get_style(fontSize=font_size),
                                       x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
 
@@ -519,7 +505,7 @@ class SoftwareApplication:
             # Controls
             if not (self.kwargs['Controls'] != self.kwargs['Controls']): # using pandas, returns NaN if empty
                 container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Controls'), value=self.name,
-                                                       style=StyleBuilder.get_style(fontSize=fontSize, fillColor='#f9f7ed',
+                                                       style=StyleBuilder.get_style(fontSize=font_size, fillColor='#f9f7ed',
                                                                                strokeColor='#36393d;'),
                                                        x=self.x, y=self.y, width=self.width, height=self.height,
                                                        link=self.kwargs['Controls'])
@@ -531,7 +517,7 @@ class SoftwareApplication:
                 root.append(container)
             else:
                 container = get_rectangle(parent=find_layer_id(root, 'Controls'), value=self.name,
-                                          style=StyleBuilder.get_style(fontSize=fontSize),
+                                          style=StyleBuilder.get_style(fontSize=font_size),
                                           x=self.x, y=self.y, width=self.width, height=self.height)
                 root.append(container)
 
@@ -543,25 +529,16 @@ class SoftwareApplication:
         }
         status = self.kwargs['StatusRAG']
         if status in status_colors:
-            self.style = StyleBuilder.get_style(fontSize=fontSize, **status_colors[status])
+            self.style = StyleBuilder.get_style(fontSize=font_size, **status_colors[status])
 
         container = get_rectangle(parent=find_layer_id(root, 'Strategy'), value=self.name,
                                   style=self.style,
                                   x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
 
-        # Resilience - colour of the resilience indicator
-        # resilience_colors = {
-        #     0: {'fillColor': '#ECF3FD', 'strokeColor': '#6C8EBF'},
-        #     1: {'fillColor': '#FFFFFF', 'strokeColor': '#10739E'},
-        #     2: {'fillColor': '#b1ddf0', 'strokeColor': '#10739e'},
-        #     3: {'fillColor': '#f9f7ed', 'strokeColor': '#36393d'},
-        #     4: {'fillColor': '#dae8fc', 'strokeColor': '#6c8ebf'}
-        # }
-
         resilience = self.kwargs['Resilience']
         if resilience in DiagramConfig.RESILIENCE_COLORS:
-            self.style = StyleBuilder.get_style(fontSize=fontSize, **DiagramConfig.RESILIENCE_COLORS[resilience])
+            self.style = StyleBuilder.get_style(fontSize=font_size, **DiagramConfig.RESILIENCE_COLORS[resilience])
         else:
             raise Exception(f"Resilience value not in range 0-4 for {self.name} {resilience}")
 
@@ -715,62 +692,105 @@ def get_random_id(size=22, chars=string.ascii_uppercase + string.digits + string
 # this was generated by GitHub Copilot just from the comment above
 # first error was made count 36 where 7x5 was suggested
 # golden rectangle added manually for elements > 91
+# def get_layout_size(elements):
+#     if elements <= 1:
+#         return 1, 1
+#     elif elements == 2:
+#         return 2, 1
+#     elif elements == 3:
+#         return 3, 1
+#     elif elements == 4:
+#         return 4, 1
+#     elif elements == 5:
+#         return 5, 1
+#     elif elements == 6:
+#         return 6, 1
+#     elif elements == 7:
+#         return 4, 2
+#     elif elements == 8:
+#         return 4, 2
+#     elif elements == 9:
+#         return 5, 2
+#     elif elements == 10:
+#         return 5, 2
+#     elif elements == 11:
+#         return 6, 2
+#     elif elements == 12:
+#         return 6, 2
+#     elif elements in range(13, 19):
+#         return 6, 3
+#     elif elements in range(19, 25):
+#         return 6, 4
+#     elif elements in range(25, 31):
+#         return 6, 5
+#     elif elements in range(31, 36):
+#         return 7, 5
+#     elif elements in range(36, 43):
+#         return 7, 6
+#     elif elements in range(43, 50):
+#         return 7, 7
+#     elif elements in range(50, 57):
+#         return 7, 8
+#     elif elements in range(57, 64):
+#         return 7, 9
+#     elif elements in range(64, 71):
+#         return 7, 10
+#     elif elements in range(71, 78):
+#         return 7, 11
+#     elif elements in range(78, 85):
+#         return 7, 12
+#     elif elements in range(85, 92):
+#         return 7, 13
+#     elif elements > 91:
+#         phi = (1 + math.sqrt(5)) / 2
+#         short_edge = math.floor((math.sqrt(elements * phi)) / phi)
+#         long_edge = math.ceil(elements / short_edge)
+#         return short_edge, long_edge
+#     else:
+#         raise ValueError(f'Unsupported number of elements: {elements}')
+
 def get_layout_size(elements):
-    if elements <= 1:
-        return 1, 1
-    elif elements == 2:
-        return 2, 1
-    elif elements == 3:
-        return 3, 1
-    elif elements == 4:
-        return 4, 1
-    elif elements == 5:
-        return 5, 1
-    elif elements == 6:
-        return 6, 1
-    elif elements == 7:
-        return 4, 2
-    elif elements == 8:
-        return 4, 2
-    elif elements == 9:
-        return 5, 2
-    elif elements == 10:
-        return 5, 2
-    elif elements == 11:
-        return 6, 2
-    elif elements == 12:
-        return 6, 2
-    elif elements in range(13, 19):
-        return 6, 3
-    elif elements in range(19, 25):
-        return 6, 4
-    elif elements in range(25, 31):
-        return 6, 5
-    elif elements in range(31, 36):
-        return 7, 5
-    elif elements in range(36, 43):
-        return 7, 6
-    elif elements in range(43, 50):
-        return 7, 7
-    elif elements in range(50, 57):
-        return 7, 8
-    elif elements in range(57, 64):
-        return 7, 9
-    elif elements in range(64, 71):
-        return 7, 10
-    elif elements in range(71, 78):
-        return 7, 11
-    elif elements in range(78, 85):
-        return 7, 12
-    elif elements in range(85, 92):
-        return 7, 13
-    elif elements > 91:
+    layout_sizes = {
+        1: (1, 1),
+        2: (2, 1),
+        3: (3, 1),
+        4: (4, 1),
+        5: (5, 1),
+        6: (6, 1),
+        7: (4, 2),
+        8: (4, 2),
+        9: (5, 2),
+        10: (5, 2),
+        11: (6, 2),
+        12: (6, 2),
+        13: (5, 3),
+        range(14, 19): (6, 3),
+        range(19, 25): (6, 4),
+        range(25, 31): (6, 5),
+        range(31, 36): (7, 5),
+        range(36, 43): (7, 6),
+        range(43, 50): (7, 7),
+        range(50, 57): (7, 8),
+        range(57, 64): (7, 9),
+        range(64, 71): (7, 10),
+        range(71, 78): (7, 11),
+        range(78, 85): (7, 12),
+        range(85, 92): (7, 13),
+    }
+
+    for key in layout_sizes:
+        if isinstance(key, range) and elements in key:
+            return layout_sizes[key]
+        elif isinstance(key, int) and elements == key:
+            return layout_sizes[key]
+
+    if elements > 91:
         phi = (1 + math.sqrt(5)) / 2
         short_edge = math.floor((math.sqrt(elements * phi)) / phi)
         long_edge = math.ceil(elements / short_edge)
         return short_edge, long_edge
-    else:
-        raise ValueError(f'Unsupported number of elements: {elements}')
+
+    raise ValueError(f'Unsupported number of elements: {elements}')
 
 
 def xml_to_file(mxGraphModel, filename='output.drawio'):
