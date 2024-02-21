@@ -551,17 +551,17 @@ class SoftwareApplication:
         root.append(container)
 
         # Resilience - colour of the resilience indicator
-        resilience_colors = {
-            0: {'fillColor': '#ECF3FD', 'strokeColor': '#6C8EBF'},
-            1: {'fillColor': '#F0BCC7', 'strokeColor': '#10739E'},
-            2: {'fillColor': '#b1ddf0', 'strokeColor': '#10739e'},
-            3: {'fillColor': '#f9f7ed', 'strokeColor': '#36393d'},
-            4: {'fillColor': '#dae8fc', 'strokeColor': '#6c8ebf'}
-        }
+        # resilience_colors = {
+        #     0: {'fillColor': '#ECF3FD', 'strokeColor': '#6C8EBF'},
+        #     1: {'fillColor': '#FFFFFF', 'strokeColor': '#10739E'},
+        #     2: {'fillColor': '#b1ddf0', 'strokeColor': '#10739e'},
+        #     3: {'fillColor': '#f9f7ed', 'strokeColor': '#36393d'},
+        #     4: {'fillColor': '#dae8fc', 'strokeColor': '#6c8ebf'}
+        # }
 
         resilience = self.kwargs['Resilience']
-        if resilience in resilience_colors:
-            self.style = StyleBuilder.get_style(fontSize=fontSize, **resilience_colors[resilience])
+        if resilience in DiagramConfig.RESILIENCE_COLORS:
+            self.style = StyleBuilder.get_style(fontSize=fontSize, **DiagramConfig.RESILIENCE_COLORS[resilience])
         else:
             raise Exception(f"Resilience value not in range 0-4 for {self.name} {resilience}")
 

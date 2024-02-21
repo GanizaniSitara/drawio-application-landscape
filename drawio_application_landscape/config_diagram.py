@@ -16,7 +16,7 @@ class DiagramConfig:
 
     MAX_PAGE_WIDTH = {
         # "L0": 1600,
-        "L1": 800,
+        "L1": 1280,
     }
 
 
@@ -50,6 +50,15 @@ class DiagramConfig:
         },
 
     }
+
+    RESILIENCE_COLORS = {
+            0: {'fillColor': '#ECF3FD', 'strokeColor': '#6C8EBF'},
+            1: {'fillColor': '#FFFFFF', 'strokeColor': '#10739E'},
+            2: {'fillColor': '#b1ddf0', 'strokeColor': '#10739e'},
+            3: {'fillColor': '#f9f7ed', 'strokeColor': '#36393d'},
+            4: {'fillColor': '#dae8fc', 'strokeColor': '#6c8ebf'}
+    }
+
 
     HEADER_HEIGHT = {
         "L1": 50,
