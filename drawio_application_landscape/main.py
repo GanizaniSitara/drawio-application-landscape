@@ -17,18 +17,15 @@ from datetime import datetime
 import drawio_shared_functions
 import drawio_tools
 
-from config_script import ScriptConfig
-from config_diagram import DiagramConfig
-import utils
+from config.config_script import ScriptConfig
+from config.config_diagram import DiagramConfig
+import utils.utils as utils
 
-# currently implemented to to control page width limiting feature
-# restact of L2's if too wide to fit wihtin page width in one row
+# currently the EXPERIMENTAL flag turns on the page width limiting feature
+# restack of L2's if too wide to fit within page width in one row
 EXPERIMENTAL = ScriptConfig.EXPERIMENTAL
 
 MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
-
-
-
 
 # L0 rendering was intended to provide another layer (3rd) of aggregation, but currently it's not supported
 # class Level0:
@@ -84,10 +81,12 @@ MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
 #
 #         self.height = L1_y_cursor - L1_y
 #
+#         TODO: Refactor to use StyleBuilder (see elsewhere in this file)
 #         container = get_rectangle(parent=find_layer_id(root, 'L0'), value=self.name,
 #                                   style=';whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize='
 #                                            + '48'
-#                                            + ';fontColor=#333333;strokeColor=none;fillColor=#888888;verticalAlign=top;spacing='
+#                                            + ';fontColor=#333333;strokeColor=none;fillColor=#888888;'
+#                                            + verticalAlign=top;spacing='
 #                                            + '2' + ';fontStyle=0',
 #                                   x=L1_x, y=L1_y, width=self.width(), height=self.height)
 #         root.append(container)
@@ -130,32 +129,34 @@ class Level1:
         for i in range(len(self.level2s)):
             node_id = id(self.level2s[i])
 
-            if not node_id in processed:
+            if node_id in processed:
+                pass
+            else:
                 x_cursor += self.level2s[i].width(transpose) + 10
                 max_height_in_row = max(max_height_in_row, self.level2s[i].height(transpose) + 10)
                 processed.add(node_id)
 
                 for j in range(i + 1, len(self.level2s)):
                     node_id = id(self.level2s[j])
-                    if not node_id in processed:
-                        if x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
-                            x_cursor += self.level2s[j].width(transpose) + 10
-                            max_height_in_row = max(max_height_in_row, self.level2s[j].height(transpose) + 10)
-                            processed.add(node_id)
-                        else:
-                            x_cursor = 0
-                            break
+
+                    if node_id in processed:
+                        continue
+                    if x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
+                        x_cursor += self.level2s[j].width(transpose) + 10
+                        max_height_in_row = max(max_height_in_row, self.level2s[j].height(transpose) + 10)
+                        processed.add(node_id)
+                    else:
+                        x_cursor = 0
+                        break
 
             total_height += max_height_in_row
             max_height_in_row = 0
 
         return total_height + self.header_height
 
-
     def width_new(self, transpose=False):
         # new implementation that runs the dynamic build of L2 to work out page size packing
         # the sequence is the same as what places items on the page in L1.appender(), can be factored out later
-
         processed = set()
         max_width = 0
         x_cursor = 0
@@ -163,19 +164,21 @@ class Level1:
         for i in range(len(self.level2s)):
             node_id = id(self.level2s[i])
 
-            if not node_id in processed:
-                x_cursor += self.level2s[i].width(transpose) + 10
-                previous_level_height = self.level2s[i].height(transpose)
-                processed.add(node_id)
+            if node_id in processed:
+                continue
+            x_cursor += self.level2s[i].width(transpose) + 10
+            # previous_level_height = self.level2s[i].height(transpose) # not used?
+            processed.add(node_id)
 
-                # keep packing while we're under the limit
-                for j in range(i + 1, len(self.level2s)):
-                    node_id = id(self.level2s[j])
-                    if not node_id in processed:
-                        if x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
-                            x_cursor += self.level2s[j].width(transpose) + 10
-                max_width = max(x_cursor, max_width)
-                x_cursor = 0
+            # keep packing while we're under the limit
+            for j in range(i + 1, len(self.level2s)):
+                node_id = id(self.level2s[j])
+                if node_id in processed:
+                    continue
+                if x_cursor + self.level2s[j].width(transpose) <= DiagramConfig.MAX_PAGE_WIDTH['L1']:
+                    x_cursor += self.level2s[j].width(transpose) + 10
+            max_width = max(x_cursor, max_width)
+            x_cursor = 0
 
         return max_width + 10
 
@@ -183,10 +186,10 @@ class Level1:
         if EXPERIMENTAL:
             return self.width_new()
 
-        result = self.horizontal_spacing
+        result: int = self.horizontal_spacing
         if not transpose:
             for level2 in self.level2s:
-               result += level2.dimensions(transpose=transpose)[1] + self.horizontal_spacing
+                result += level2.dimensions(transpose=transpose)[1] + self.horizontal_spacing
         else:
             result += max(
                 level2.dimensions(transpose=transpose)[1] for level2 in self.level2s) + self.horizontal_spacing
@@ -205,7 +208,7 @@ class Level1:
         return 'Leve1: %s %s %s' % (self.name, self.x, self.y)
 
     def appender(self, root, transpose=False, **kwargs):
-        # TODO: not clear what the tree flag was used for, we don't seem to be calling it, ever, not true actually we do from code
+        # TODO: not clear what the tree flag was used for, probably portrait/landscape mode, needs confirmation
         if (not self.placed) and (not kwargs.get('tree')):
             self.x = kwargs['x']
             self.y = kwargs['y']
@@ -223,14 +226,17 @@ class Level1:
         # this is related to font size, but we haven't worked out the ratios, so hardcoded for now
         # TODO: cleanup and move to config
         # TODO: if parent is scaled then we should scale the child too, currently no flag on parent
-        conditions_one = {'stringLenght': 9, 'softwareApplicationBoxes': 1}
-        conditions_two = {'stringLenght': 18, 'softwareApplicationBoxes': 2}
-        conditions_three = {'stringLenght': 16, 'softwareApplicationBoxes': 1}
-        logger.debug(f"Level1: {self.name} {self.width()} {self.height()} {style}")
-        condition_one = len(self.name) > 9 and self.width() == SoftwareApplication.width + 4 * self.horizontal_spacing
-        condition_two = len(self.name) > 18 and self.width() == 2 * SoftwareApplication.width + 5 * self.horizontal_spacing
+        # conditions_one = {'stringLength': 9, 'softwareApplicationBoxes': 1}
+        # conditions_two = {'stringLength': 18, 'softwareApplicationBoxes': 2}
+        # conditions_three = {'stringLength': 16, 'softwareApplicationBoxes': 1}
 
-        # lots of text, only one columen
+        logger.debug(f"Level1: {self.name} {self.width()} {self.height()} {style}")
+
+        condition_one = len(self.name) > 26 and self.width() == SoftwareApplication.width + 4 * self.horizontal_spacing
+        condition_two = (len(self.name) > 26 and self.width() == 2 * SoftwareApplication.width + 5 *
+                         self.horizontal_spacing)
+
+        # lots of text, only one column
         condition_three = len(self.name) > 9 and self.width() == SoftwareApplication.width + 4 * self.horizontal_spacing
 
         if condition_one or condition_two:
@@ -241,7 +247,7 @@ class Level1:
                 level2.parent_reduced_font_size = True
 
         if condition_three:
-            adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L1']['fontSize'], steps=2)
+            adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L1']['fontSize'], steps=0)
             style = ';'.join([f"fontSize={adjusted_font_size}" if 'fontSize=' in s else s for s in style.split(';')])
 
 
@@ -468,11 +474,13 @@ class SoftwareApplication:
                     'style': 'rounded=1',
                     'whiteSpace': 'wrap',
                     'html': '1',
-                    'fontFamily': 'Expert Sans Regular',
+                    'fontFamily': 'Helvetica',
                     'fontStyle': '0',
-                    'verticalAlign': 'top',
-                    'spacing': '11',
+                    'verticalAlign': 'middle',
+                    'spacing': '0',
                     'arcSize': '4',
+                    'spacingLeft': '2',
+                    'spacingRight': '2',
                 }
                 defaults.update(kwargs)
                 return ';'.join(f'{key}={value}' for key, value in defaults.items())
@@ -481,21 +489,25 @@ class SoftwareApplication:
         condition_name_over_26 = (len(self.name) > 26)
         condition_name_over_50 = (len(self.name) > 50)
 
+        extra_break = None
         if condition_name_over_26:
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=2)
+            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=0)
+            self.name = "<br>" + self.name
         elif condition_name_over_50:
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=3)
+            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=0)
         else:
             font_size = DiagramConfig.CONFIG['App']['fontSize']
 
 
         if self.kwargs['Link']:
-            container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Applications'), value=self.name,
+            container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Applications'),
+                                                   value=self.name,
                                                    style=StyleBuilder.get_style(fontSize=font_size),
                                                    x=self.x, y=self.y, width=self.width, height=self.height,
                                                    link=self.kwargs['Link'])
         else:
-            container = get_rectangle(parent=find_layer_id(root, 'Applications'), value=self.name,
+            container = get_rectangle(parent=find_layer_id(root, 'Applications'),
+                                      value=self.name,
                                       style=StyleBuilder.get_style(fontSize=font_size),
                                       x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
@@ -516,7 +528,8 @@ class SoftwareApplication:
                                                        x=self.x + 100, y=self.y + 52, width="22.69", height="28", link=self.kwargs['Controls'])
                 root.append(container)
             else:
-                container = get_rectangle(parent=find_layer_id(root, 'Controls'), value=self.name,
+                container = get_rectangle(parent=find_layer_id(root, 'Controls'),
+                                          value=self.name,
                                           style=StyleBuilder.get_style(fontSize=font_size),
                                           x=self.x, y=self.y, width=self.width, height=self.height)
                 root.append(container)
@@ -531,27 +544,44 @@ class SoftwareApplication:
         if status in status_colors:
             self.style = StyleBuilder.get_style(fontSize=font_size, **status_colors[status])
 
-        container = get_rectangle(parent=find_layer_id(root, 'Strategy'), value=self.name,
+        container = get_rectangle(parent=find_layer_id(root, 'Strategy'),
+                                  value=self.name,
                                   style=self.style,
                                   x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
 
-        resilience = self.kwargs['Resilience']
-        if resilience in DiagramConfig.RESILIENCE_COLORS:
-            self.style = StyleBuilder.get_style(fontSize=font_size, **DiagramConfig.RESILIENCE_COLORS[resilience])
-        else:
-            raise Exception(f"Resilience value not in range 0-4 for {self.name} {resilience}")
+        if self.kwargs.get('Resilience'):
+            resilience = self.kwargs['Resilience']
+            if resilience in DiagramConfig.RESILIENCE_COLORS:
+                self.style = StyleBuilder.get_style(fontSize=font_size, **DiagramConfig.RESILIENCE_COLORS[resilience])
+            else:
+                raise Exception(f"Resilience value not in range 0-4 for {self.name} {resilience}")
 
-        container = get_rectangle(parent=find_layer_id(root, 'Resilience'), value=self.name,
-                                  style=self.style,
-                                  x=self.x, y=self.y, width=self.width, height=self.height)
-        root.append(container)
+            container = get_rectangle(parent=find_layer_id(root, 'Resilience'), value=self.name,
+                                      style=self.style,
+                                      x=self.x, y=self.y, width=self.width, height=self.height)
+            root.append(container)
 
 
         # TC - TC indicator
-        container = get_rectangle(parent=find_layer_id(root, 'TransactionCycle'), value=str(self.kwargs['TC']),
-                                  style='text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;labelBackgroundColor=none;fontFamily=Helvetica;fontStyle=1;fontSize=14;fontColor=#333333;',
-                                  x=self.x + 1, y=self.y + 1, width=30, height=20)
+        container = get_rectangle(parent=find_layer_id(root, 'TransactionCycle'),
+                                  value=str(self.kwargs['TC']),
+                                  style='text;html=1;'
+                                        'strokeColor=none;'
+                                        'fillColor=none;'
+                                        'align=center;'
+                                        'verticalAlign=middle;'
+                                        'whiteSpace=wrap;'
+                                        'rounded=0;'
+                                        'labelBackgroundColor=none;'
+                                        'fontFamily=Helvetica;'
+                                        'fontStyle=1;'
+                                        'fontSize=12;'
+                                        'fontColor=#333333;',
+                                  x=self.x,
+                                  y=self.y,
+                                  width=60,
+                                  height=20)
         root.append(container)
 
         def get_date_color(date_str):
@@ -567,14 +597,15 @@ class SoftwareApplication:
                 return "326800"
 
         # Decomm Date
-        if not pd.isna(self.kwargs['DecommDate']):
-            container = get_rectangle(parent=find_layer_id(root, 'TransactionCycle'), value='Cease ' + str(self.kwargs['DecommDate']),
-                                      style='text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;' +
-                                            'whiteSpace=wrap;rounded=0;labelBackgroundColor=none;' +
-                                            'fontFamily=Helvetica;fontStyle=1;fontSize=11;fontColor=#' +
-                                            get_date_color(self.kwargs['DecommDate']) + ';',
-                                      x=self.x + self.width - 80, y=self.y, width=80, height=20)
-            root.append(container)
+        if self.kwargs.get('DecommDate'):
+            if not pd.isna(self.kwargs['DecommDate']):
+                container = get_rectangle(parent=find_layer_id(root, 'TransactionCycle'), value='Cease ' + str(self.kwargs['DecommDate']),
+                                          style='text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;' +
+                                                'whiteSpace=wrap;rounded=0;labelBackgroundColor=none;' +
+                                                'fontFamily=Helvetica;fontStyle=1;fontSize=11;fontColor=#' +
+                                                get_date_color(self.kwargs['DecommDate']) + ';',
+                                          x=self.x + self.width - 80, y=self.y, width=80, height=20)
+                root.append(container)
 
 
         if self.show_pictograms:
@@ -681,82 +712,19 @@ def append_default_layers(root):
         root.append(layer)
     return root
 
-
-
-# https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
 def get_random_id(size=22, chars=string.ascii_uppercase + string.digits + string.ascii_lowercase + '-_'):
+    # We could do something more deterministic here, but given it's 22 characters there's enough combinations
+    # https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits
     return ''.join(random.choice(chars) for _ in range(size))
-
-
-# from number of elements return number of columns and rows needed for landscape layout
-# this was generated by GitHub Copilot just from the comment above
-# first error was made count 36 where 7x5 was suggested
-# golden rectangle added manually for elements > 91
-# def get_layout_size(elements):
-#     if elements <= 1:
-#         return 1, 1
-#     elif elements == 2:
-#         return 2, 1
-#     elif elements == 3:
-#         return 3, 1
-#     elif elements == 4:
-#         return 4, 1
-#     elif elements == 5:
-#         return 5, 1
-#     elif elements == 6:
-#         return 6, 1
-#     elif elements == 7:
-#         return 4, 2
-#     elif elements == 8:
-#         return 4, 2
-#     elif elements == 9:
-#         return 5, 2
-#     elif elements == 10:
-#         return 5, 2
-#     elif elements == 11:
-#         return 6, 2
-#     elif elements == 12:
-#         return 6, 2
-#     elif elements in range(13, 19):
-#         return 6, 3
-#     elif elements in range(19, 25):
-#         return 6, 4
-#     elif elements in range(25, 31):
-#         return 6, 5
-#     elif elements in range(31, 36):
-#         return 7, 5
-#     elif elements in range(36, 43):
-#         return 7, 6
-#     elif elements in range(43, 50):
-#         return 7, 7
-#     elif elements in range(50, 57):
-#         return 7, 8
-#     elif elements in range(57, 64):
-#         return 7, 9
-#     elif elements in range(64, 71):
-#         return 7, 10
-#     elif elements in range(71, 78):
-#         return 7, 11
-#     elif elements in range(78, 85):
-#         return 7, 12
-#     elif elements in range(85, 92):
-#         return 7, 13
-#     elif elements > 91:
-#         phi = (1 + math.sqrt(5)) / 2
-#         short_edge = math.floor((math.sqrt(elements * phi)) / phi)
-#         long_edge = math.ceil(elements / short_edge)
-#         return short_edge, long_edge
-#     else:
-#         raise ValueError(f'Unsupported number of elements: {elements}')
 
 def get_layout_size(elements):
     layout_sizes = {
         1: (1, 1),
-        2: (2, 1),
-        3: (3, 1),
-        4: (4, 1),
-        5: (5, 1),
-        6: (6, 1),
+        2: (1, 2),
+        3: (2, 2),
+        4: (2, 2),
+        5: (3, 2),
+        6: (3, 2),
         7: (4, 2),
         8: (4, 2),
         9: (5, 2),

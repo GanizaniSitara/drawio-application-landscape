@@ -16,7 +16,7 @@ class DiagramConfig:
 
     MAX_PAGE_WIDTH = {
         # "L0": 1600,
-        "L1": 1280,
+        "L1": 1920,
     }
 
 
@@ -46,7 +46,7 @@ class DiagramConfig:
             "fontSize": "18",
         },
         "App": {
-            "fontSize": "14",
+            "fontSize": "12",
         },
 
     }

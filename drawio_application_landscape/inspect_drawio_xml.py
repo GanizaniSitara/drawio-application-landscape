@@ -1,8 +1,9 @@
 import drawio_tools
 import lxml.etree as etree
 from xml.etree import ElementTree
+import sys
 
-x = etree.parse('examples\inspect.drawio')
+x = etree.parse(sys.argv[1])
 #print(etree.tostring(x, pretty_print=True))
 
 diagram_data = x.findall('.//diagram')[0]#.text
