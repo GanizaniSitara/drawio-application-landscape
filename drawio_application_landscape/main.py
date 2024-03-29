@@ -249,7 +249,7 @@ class Level1:
                 level2.parent_reduced_font_size = True
 
         if condition_three:
-            adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L1']['fontSize'], steps=0)
+            adjusted_font_size = utils.reduce_font_size(DiagramConfig.CONFIG['L1']['fontSize'], steps=2)
             style = ';'.join([f"fontSize={adjusted_font_size}" if 'fontSize=' in s else s for s in style.split(';')])
 
 
