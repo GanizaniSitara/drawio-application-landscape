@@ -1,17 +1,29 @@
-# Drawio Application Landscape Builder
+# Capability and Application Landscape in Draw.io 
 
-Creates and application landscape map with commonly used enterpriseapplication metadata, 
-such as Resilience Category, Cease Date, Transaction Cycle and others.
+We take CSV input and make it into a Draw.io diagram for embedding in Confluence or standaone use.
+
+Features:
+* Colourisation by Stategy (RAG)
+* Colourisation by Category (i.e. Resilience Category)
+* Metrics, Hosting and Harvey ball pictograms
+* 3-layers
+* Self-adjusting to page width
+* Configure local setup to open Drww.io automaticall after each render
+
+![examples/Enterprise_Capabilities.drawio.png](examples/Enterprise_Capabilities.drawio.png)
+
+![examples/Application_Diagram_Builder.drawio.png](examples/Application_Diagram_Builder.drawio.png)   
+
 
 ### Usage
 
 Clone the repo then:
 
-1) Update the DRAWIO_EXECUTABLE in the pyMX.py file to point to your drawio executable
+1) Update the DRAWIO_EXECUTABLE in the main.py file to point to your drawio executable
 2) Run the following command to generate the application landscape map
 
 ```bash
-python pyMX.py examples\Application_Diagram_Builder.csv
+python main.py examples\Application_Diagram_Builder.csv
 ```
 
 ### Experiments

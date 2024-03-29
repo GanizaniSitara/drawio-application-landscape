@@ -27,6 +27,8 @@ EXPERIMENTAL = ScriptConfig.EXPERIMENTAL
 
 MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
 
+
+
 # L0 rendering was intended to provide another layer (3rd) of aggregation, but currently it's not supported
 # class Level0:
 #     def __init__(self, name):
@@ -433,92 +435,120 @@ class Level2:
         self.appender(root, transpose=True)
         xml_to_file(mxGraphModel, file_name + '_' + level1_name + '_' + self.name + '.drawio')
 
+# class StyleBuilder:
+#     @staticmethod
+#     def get_style(**kwargs):
+#         defaults = {
+#             'style': 'rounded=1',
+#             'whiteSpace': 'wrap',
+#             'html': '1',
+#             'fontFamily': 'Helvetica',
+#             'fontStyle': '0',
+#             'verticalAlign': 'middle',
+#             'spacing': '0',
+#             'arcSize': '4',
+#             'spacingLeft': '2',
+#             'spacingRight': '2',
+#         }
+#         defaults.update(kwargs)
+#         return ';'.join(f'{key}={value}' for key, value in defaults.items())
+
+class SWAppStyleBuilder:
+    _instance = None
+    _vertical_align = 'middle'  # Default value
+
+    def __new__(cls, vertical_align=None):
+        if cls._instance is None:
+            cls._instance = super(SWAppStyleBuilder, cls).__new__(cls)
+            if vertical_align is not None:
+                cls._vertical_align = vertical_align
+        return cls._instance
+
+    @classmethod
+    def set_vertical_align(cls, vertical_align):
+        cls._vertical_align = vertical_align
+
+    @classmethod
+    def get_style(cls, **kwargs):
+        defaults = {
+            'style': 'rounded=1',
+            'whiteSpace': 'wrap',
+            'html': '1',
+            'fontFamily': 'Helvetica',
+            'fontStyle': '0',
+            'verticalAlign': cls._vertical_align,  # Use the class variable
+            'spacing': '0',
+            'arcSize': '4',
+            'spacingLeft': '2',
+            'spacingRight': '2',
+        }
+        defaults.update(kwargs)
+        return ';'.join(f'{key}={value}' for key, value in defaults.items())
+
+
+
+class HostingPattern(Enum):
+    AZURE = 'verticalLabelPosition=bottom;html=1;verticalAlign=top;align=center;strokeColor=none;fillColor=#00BEF2;shape=mxgraph.azure.azure_instance;fontFamily=Expert Sans Regular;aspect=fixed;'
+    AWS = 'dashed=0;outlineConnect=0;html=1;align=center;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.webicons.amazon;gradientColor=#DFDEDE;strokeColor=#FFFFFF;strokeWidth=1;fontFamily=Expert Sans Regular;aspect=fixed;'
+    LINUX = "pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#DF8C42;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam2.linux;fontFamily=Expert Sans Regular;aspect=fixed;"
+    WINDOWS = "shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#EF8F21;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.ms_windows;fontFamily=Expert Sans Regular;"
+    OPENSHIFT = "aspect=fixed;html=1;points=[];align=center;image;fontSize=12;image=img/lib/mscae/OpenShift.svg;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333333;"
+    WINDOWSVM = "shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#4495D1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.vm_windows;fontFamily=Expert Sans Regular;aspect=fixed;"
 
 class SoftwareApplication:
     width = 160
 
     def __init__(self, name, **kwargs):
         self.name = name
-        self.height = 80
+        self.height = 80 if DiagramConfig.SHOW_PICTOGRAMS else 50
         self.x = 0
         self.y = 0
         self.kwargs = kwargs
         self.style = ''
         self.show_pictograms = DiagramConfig.SHOW_PICTOGRAMS
 
-        if self.show_pictograms:
-            self.height = 80
-        else:
-            self.height = 50
-
     def __lt__(self, other):
         return self.name < other.name
 
-    class HostingPattern(Enum):
-        AZURE = 'verticalLabelPosition=bottom;html=1;verticalAlign=top;align=center;strokeColor=none;fillColor=#00BEF2;shape=mxgraph.azure.azure_instance;fontFamily=Expert Sans Regular;aspect=fixed;'
-        AWS = 'dashed=0;outlineConnect=0;html=1;align=center;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.webicons.amazon;gradientColor=#DFDEDE;strokeColor=#FFFFFF;strokeWidth=1;fontFamily=Expert Sans Regular;aspect=fixed;'
-        LINUX = "pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#DF8C42;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam2.linux;fontFamily=Expert Sans Regular;aspect=fixed;"
-        WINDOWS = "shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#EF8F21;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.ms_windows;fontFamily=Expert Sans Regular;"
-        OPENSHIFT = "aspect=fixed;html=1;points=[];align=center;image;fontSize=12;image=img/lib/mscae/OpenShift.svg;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333333;"
-        WINDOWSVM = "shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#4495D1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;shape=mxgraph.veeam.vm_windows;fontFamily=Expert Sans Regular;aspect=fixed;"
+    def determine_font_size(self):
+        if len(self.name) > 50:
+            return utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=0)
+        elif len(self.name) > 26:
+            self.name = "<br>" + self.name
+            return utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=0)
+        return DiagramConfig.CONFIG['App']['fontSize']
 
-    def get_style_for_hosting_pattern(self, hosting_pattern):
-        return self.HostingPattern[hosting_pattern.upper()].value
+    @staticmethod
+    def get_style_for_hosting_pattern(hosting_pattern):
+        return HostingPattern[hosting_pattern.upper()].value
 
     def appender(self, root):
 
-        class StyleBuilder:
-            @staticmethod
-            def get_style(**kwargs):
-                defaults = {
-                    'style': 'rounded=1',
-                    'whiteSpace': 'wrap',
-                    'html': '1',
-                    'fontFamily': 'Helvetica',
-                    'fontStyle': '0',
-                    'verticalAlign': 'middle',
-                    'spacing': '0',
-                    'arcSize': '4',
-                    'spacingLeft': '2',
-                    'spacingRight': '2',
-                }
-                defaults.update(kwargs)
-                return ';'.join(f'{key}={value}' for key, value in defaults.items())
+        font_size = self.determine_font_size()
 
-        # TODO: move to config, including step reduction
-        condition_name_over_26 = (len(self.name) > 26)
-        condition_name_over_50 = (len(self.name) > 50)
-
-        extra_break = None
-        if condition_name_over_26:
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=0)
+        if DiagramConfig.SHOW_PICTOGRAMS and not self.name.startswith("<br>"):
             self.name = "<br>" + self.name
-        elif condition_name_over_50:
-            font_size = utils.reduce_font_size(DiagramConfig.CONFIG['App']['fontSize'], steps=0)
-        else:
-            font_size = DiagramConfig.CONFIG['App']['fontSize']
 
 
         if self.kwargs['Link']:
-            container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Applications'),
-                                                   value=self.name,
-                                                   style=StyleBuilder.get_style(fontSize=font_size),
-                                                   x=self.x, y=self.y, width=self.width, height=self.height,
-                                                   link=self.kwargs['Link'])
+            container = create_rectangle_with_optional_link(parent=find_layer_id(root, 'Applications'),
+                                                            value=self.name,
+                                                            style=swapp_style_builder.get_style(fontSize=font_size),
+                                                            x=self.x, y=self.y, width=self.width, height=self.height,
+                                                            link=self.kwargs['Link'])
         else:
-            container = get_rectangle(parent=find_layer_id(root, 'Applications'),
-                                      value=self.name,
-                                      style=StyleBuilder.get_style(fontSize=font_size),
-                                      x=self.x, y=self.y, width=self.width, height=self.height)
+            container = create_rectangle_with_optional_link(parent=find_layer_id(root, 'Applications'),
+                                                            value=self.name,
+                                                            style=swapp_style_builder.get_style(fontSize=font_size),
+                                                            x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
-
 
         if self.show_pictograms:
             # Controls
             if not (self.kwargs['Controls'] != self.kwargs['Controls']): # using pandas, returns NaN if empty
                 container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Controls'), value=self.name,
-                                                       style=StyleBuilder.get_style(fontSize=font_size, fillColor='#f9f7ed',
-                                                                               strokeColor='#36393d;'),
+                                                       style=swapp_style_builder.get_style(fontSize=font_size, fillColor='#f9f7ed',
+                                                                                         strokeColor='#36393d;'),
                                                        x=self.x, y=self.y, width=self.width, height=self.height,
                                                        link=self.kwargs['Controls'])
                 root.append(container)
@@ -530,19 +560,15 @@ class SoftwareApplication:
             else:
                 container = get_rectangle(parent=find_layer_id(root, 'Controls'),
                                           value=self.name,
-                                          style=StyleBuilder.get_style(fontSize=font_size),
+                                          style=swapp_style_builder.get_style(fontSize=font_size),
                                           x=self.x, y=self.y, width=self.width, height=self.height)
                 root.append(container)
 
         # StatusRAG - colour of the shole application on the Strategy layer
-        status_colors = {
-            'red': {'fillColor': '#F8CECC', 'strokeColor': '#b85450'},
-            'amber': {'fillColor': '#FFF2CC', 'strokeColor': '#D6B656'},
-            'green': {'fillColor': '#D5E8D4', 'strokeColor': '#82B366'}
-        }
+
         status = self.kwargs['StatusRAG']
-        if status in status_colors:
-            self.style = StyleBuilder.get_style(fontSize=font_size, **status_colors[status])
+        if status in DiagramConfig.STATUS_COLORS:
+            self.style = swapp_style_builder.get_style(fontSize=font_size, **DiagramConfig.STATUS_COLORS[status])
 
         container = get_rectangle(parent=find_layer_id(root, 'Strategy'),
                                   value=self.name,
@@ -553,7 +579,7 @@ class SoftwareApplication:
         if self.kwargs.get('Resilience'):
             resilience = self.kwargs['Resilience']
             if resilience in DiagramConfig.RESILIENCE_COLORS:
-                self.style = StyleBuilder.get_style(fontSize=font_size, **DiagramConfig.RESILIENCE_COLORS[resilience])
+                self.style = swapp_style_builder.get_style(fontSize=font_size, **DiagramConfig.RESILIENCE_COLORS[resilience])
             else:
                 raise Exception(f"Resilience value not in range 0-4 for {self.name} {resilience}")
 
@@ -833,6 +859,35 @@ def get_rectangle_link_overlay(parent, x, y, width, height, **kwargs):
         print(kwargs)
         RuntimeError('create_linked_rectangle failed')
 
+def create_rectangle_with_optional_link(parent, x, y, width, height, **kwargs):
+    # Initialize the base mxCell element
+    mxcell = etree.Element('mxCell')
+    mxcell.set('id', get_random_id())
+    mxcell.set('value', kwargs.get('value', ''))
+    mxcell.set('style', kwargs.get('style', ''))
+    mxcell.set('parent', parent)
+    mxcell.set('vertex', '1')
+
+    # Set the geometry
+    geometry = etree.Element('mxGeometry')
+    geometry.set('x', str(x))
+    geometry.set('y', str(y))
+    geometry.set('width', str(width))
+    geometry.set('height', str(height))
+    geometry.set('as', 'geometry')
+    mxcell.append(geometry)
+
+    # If a link is provided, wrap mxCell in a UserObject and set the link
+    if 'link' in kwargs:
+        UserObject = etree.Element('UserObject')
+        UserObject.set('id', get_random_id())
+        UserObject.set('link', kwargs['link'])
+        UserObject.set('label', kwargs.get('value', ''))
+        UserObject.append(mxcell)
+        return UserObject
+    else:
+        return mxcell
+
 
 def find_layer_id(root, name):
     for node in root.findall('.//mxCell[@parent="0"][@value="' + name + '"]'):
@@ -993,6 +1048,12 @@ def render_partial_views(file_name, level1s):
 
 
 def main(file):
+    global swapp_style_builder
+    if DiagramConfig.SHOW_PICTOGRAMS:
+        swapp_style_builder = SWAppStyleBuilder(vertical_align='top')
+    else:
+        swapp_style_builder = SWAppStyleBuilder(vertical_align='middle')
+
     render_L1(file)
 
 # L0 rendering is currently not supported

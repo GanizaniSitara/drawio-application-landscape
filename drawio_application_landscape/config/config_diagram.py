@@ -11,7 +11,7 @@ class DiagramConfig:
     def __init__(self):
         pass
 
-    SHOW_PICTOGRAMS = False
+    SHOW_PICTOGRAMS = True
 
 
     MAX_PAGE_WIDTH = {
@@ -49,6 +49,12 @@ class DiagramConfig:
             "fontSize": "12",
         },
 
+    }
+
+    STATUS_COLORS = {
+        'red': {'fillColor': '#F8CECC', 'strokeColor': '#b85450'},
+        'amber': {'fillColor': '#FFF2CC', 'strokeColor': '#D6B656'},
+        'green': {'fillColor': '#D5E8D4', 'strokeColor': '#82B366'}
     }
 
     RESILIENCE_COLORS = {
