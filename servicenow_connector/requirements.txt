@@ -1,0 +1,7 @@
+# ServiceNow Connector Requirements
+
+# Playwright for browser automation with SSO support
+playwright>=1.40.0
+
+# Optional: for loading .env configuration files
+python-dotenv>=1.0.0
