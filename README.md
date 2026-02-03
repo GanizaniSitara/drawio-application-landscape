@@ -10,9 +10,9 @@ Features:
 * Self-adjusting to page width
 * Configure local setup to open Drww.io automaticall after each render
 
-![examples/Enterprise_Capabilities.drawio.png](examples/Enterprise_Capabilities.drawio.png)
+![Enterprise Capabilities](https://ganizanisitara.github.io/drawio-application-landscape/Enterprise_Capabilities.drawio.png)
 
-![examples/Application_Diagram_Builder.drawio.png](examples/Application_Diagram_Builder.drawio.png)   
+![Application Diagram Builder](https://ganizanisitara.github.io/drawio-application-landscape/Application_Diagram_Builder.drawio.png)   
 
 
 ### Usage
