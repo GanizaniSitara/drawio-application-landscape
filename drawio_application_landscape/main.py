@@ -806,7 +806,7 @@ def xml_to_file(mxGraphModel, filename='output.drawio'):
     child.text = data
     root.append(child)
 
-    filepath = ScriptConfig.ROOT_FOLDER + "\\" + filename
+    filepath = os.path.join(ScriptConfig.ROOT_FOLDER, filename)
     tree = etree.ElementTree(root)
     logger.info(f"Writing to file: {filepath}")
     tree.write(filepath)
@@ -896,7 +896,7 @@ def find_layer_id(root, name):
 
 # def render_L0(file):
 #     try:
-#         df = pd.read_csv(file, quoting=csv.QUOTE_ALL, delim_whitespace=False)
+#         df = pd.read_csv(file, quoting=csv.QUOTE_ALL)
 #     except Exception as e:
 #         print(e)
 #         print(f"Issue with file {file}")
@@ -961,7 +961,7 @@ def render_L1(file):
     append_default_layers(root)
 
     try:
-        df = pd.read_csv(file, quoting=csv.QUOTE_ALL, delim_whitespace=False)
+        df = pd.read_csv(file, quoting=csv.QUOTE_ALL)
     except Exception as e:
         print(e)
         print(f"Issue reading:{file}")
@@ -1030,7 +1030,7 @@ def render_L1(file):
             L1_x_cursor = 0
             L1_y_cursor += previous_level_height + 10
 
-    file_name = file[:-4]
+    file_name = os.path.splitext(os.path.basename(file))[0]
 
     logger.info(f"Saving to {file_name}.drawio")
     xml_to_file(mxGraphModel, file_name + '.drawio')
@@ -1038,7 +1038,8 @@ def render_L1(file):
     if DEBUG:
         drawio_shared_functions.pretty_print(mxGraphModel)
 
-    os.system(f'"{ScriptConfig.DRAWIO_EXECUTABLE}" ' + f"{ScriptConfig.ROOT_FOLDER}\\{file_name}.drawio")
+    if ScriptConfig.OPEN_IN_DRAWIO:
+        os.system(f'"{ScriptConfig.DRAWIO_EXECUTABLE}" ' + f"{ScriptConfig.ROOT_FOLDER}\\{file_name}.drawio")
 
 def render_partial_views(file_name, level1s):
     for level1 in level1s:
