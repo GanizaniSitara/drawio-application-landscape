@@ -1,4 +1,3 @@
-import drawio_tools
 import lxml.etree as etree
 from xml.etree import ElementTree
 import sys

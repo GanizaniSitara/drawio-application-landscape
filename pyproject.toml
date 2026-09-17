@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drawio-application-landscape"
+version = "0.2.0"
+description = "Render capability and application landscape diagrams for draw.io from a CSV"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "pandas>=2.0",
+    "lxml>=4.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+landscape = "drawio_application_landscape.cli:main"
+
+[tool.setuptools]
+packages = [
+    "drawio_application_landscape",
+    "drawio_application_landscape.config",
+    "drawio_application_landscape.utils",
+]
