@@ -14,12 +14,12 @@ import os
 from datetime import datetime
 
 # our imports
-import drawio_shared_functions
-import drawio_tools
+from drawio_application_landscape import drawio_shared_functions
+from drawio_application_landscape import drawio_tools
 
-from config.config_script import ScriptConfig
-from config.config_diagram import DiagramConfig
-import utils.utils as utils
+from drawio_application_landscape.config.config_script import ScriptConfig
+from drawio_application_landscape.config.config_diagram import DiagramConfig
+from drawio_application_landscape.utils import utils
 
 # currently the EXPERIMENTAL flag turns on the page width limiting feature
 # restack of L2's if too wide to fit within page width in one row
@@ -29,69 +29,36 @@ MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L1']
 
 
 
-# L0 rendering was intended to provide another layer (3rd) of aggregation, but currently it's not supported
-# class Level0:
-#     def __init__(self, name):
-#         self.name = name
-#         self.level1s = []
-#         self.placed = False
-#         self.x = 0
-#         self.y = 0
-#         self.max_L0_width = 1800
-#         self.TITLE_SPACING = 70
-#         self.L0_SCALING = 0.5
-#
-#     def append(self, app):
-#         self.level1s.append(app)
-#         self.level1s = sorted(self.level1s, key=lambda x: x.size(), reverse=True)
-#
-#     def width(self):
-#         return 10 + sum(level1.dimensions(tree=False)[0] + 10 for level1 in self.level1s)
-#
-#     # def height(self):
-#     #     return self.TITLE_SPACING + (level1.height() for level1 in self.level1s)
-#
-#     def size(self):
-#         # print(f"Level0: {self.name} {len(self.level1s)} {size} {self.width()} {self.height()}")
-#         return sum([x.size() for x in self.level1s])
-#
-#     def appender(self, root, transpose=False, **kwargs):
-#         self.x = kwargs['x'] if kwargs['x'] != self.x else self.x
-#         self.y = kwargs['y'] if kwargs['y'] != self.y else self.y
-#
-#         L1_x = self.x
-#         L1_y = self.y
-#         L1_x_cursor = L1_x + 10
-#         L1_y_cursor = L1_y + self.TITLE_SPACING
-#         previous_level_height = 0
-#
-#         for i in range(len(self.level1s)):
-#             if not self.level1s[i].placed:
-#                 self.level1s[i].appender(root, x=L1_x_cursor, y=L1_y_cursor, tree=False)
-#                 L1_x_cursor += self.level1s[i].width(transpose=False, tree=False) * self.L0_SCALING  + 10
-#                 if self.level1s[i].height(tree=False) > previous_level_height:
-#                     previous_level_height = self.level1s[i].height(tree=False) * self.L0_SCALING
-#                 for j in range(i + 1, len(self.level1s)):
-#                     if not self.level1s[j].placed:
-#                         if L1_x_cursor + self.level1s[j].width(transpose=False, tree=False) <= self.max_L0_width:
-#                             self.level1s[j].appender(root, x=L1_x_cursor, y=L1_y_cursor, tree=False)
-#                             L1_x_cursor += self.level1s[j].width(transpose=False, tree=False) * self.L0_SCALING + 10
-#                             if self.level1s[j].height(tree=False) > previous_level_height:
-#                                 previous_level_height = self.level1s[i].height(tree=False) * self.L0_SCALING
-#                 L1_x_cursor = 0
-#                 L1_y_cursor += previous_level_height + 10
-#
-#         self.height = L1_y_cursor - L1_y
-#
-#         TODO: Refactor to use StyleBuilder (see elsewhere in this file)
-#         container = get_rectangle(parent=find_layer_id(root, 'L0'), value=self.name,
-#                                   style=';whiteSpace=wrap;html=1;fontFamily=Expert Sans Regular;fontSize='
-#                                            + '48'
-#                                            + ';fontColor=#333333;strokeColor=none;fillColor=#888888;'
-#                                            + verticalAlign=top;spacing='
-#                                            + '2' + ';fontStyle=0',
-#                                   x=L1_x, y=L1_y, width=self.width(), height=self.height)
-#         root.append(container)
+# Module level state. main() resets both; they are defined here so the module can be
+# imported and driven as a library.
+DEBUG = False
+swapp_style_builder = None
+
+logger = logging.getLogger(__name__)
+
+
+class InvalidInput(Exception):
+    """The CSV cannot be rendered, and the message says why."""
+
+
+# Grouping and identity. Every other column is optional.
+REQUIRED_COLUMNS = ('Level1', 'Level2', 'AppName')
+
+# Optional columns, and the layer each one drives.
+OPTIONAL_COLUMNS = (
+    'TC',                # Transaction cycle label
+    'StatusRAG',         # red / amber / green, colours the Strategy layer
+    'Resilience',        # 0-4, colours the Resilience layer
+    'Category',          # accepted as an alias for Resilience
+    'Link',              # hyperlink on the application box
+    'Controls',          # hyperlink, draws the Controls pictogram
+    'HostingPercent',    # 0-100, Harvey ball on the Hosting layer
+    'HostingPattern1',   # hosting icon, see HostingPattern
+    'HostingPattern2',
+    'Arrow1',            # up / down trend arrow on the Metrics layer
+    'Arrow2',
+    'DecommDate',        # YYYY-MM, shown as a Cease date
+)
 
 
 class Level1:
@@ -500,12 +467,28 @@ class SoftwareApplication:
 
     def __init__(self, name, **kwargs):
         self.name = name
+        # self.name gains layout markup such as a leading <br>; keep the original for
+        # anything a human reads.
+        self.original_name = name
         self.height = 80 if DiagramConfig.SHOW_PICTOGRAMS else 50
         self.x = 0
         self.y = 0
         self.kwargs = kwargs
         self.style = ''
         self.show_pictograms = DiagramConfig.SHOW_PICTOGRAMS
+
+    def column(self, name, default=None):
+        """Read an optional CSV column.
+
+        Every column but Level1, Level2 and AppName is optional, and pandas reports an
+        empty cell as NaN, so absent and blank have to mean the same thing here.
+        """
+        value = self.kwargs.get(name, default)
+        if value is None or value != value:  # NaN is the only value unequal to itself
+            return default
+        if isinstance(value, str) and not value.strip():
+            return default
+        return value
 
     def __lt__(self, other):
         return self.name < other.name
@@ -530,12 +513,13 @@ class SoftwareApplication:
             self.name = "<br>" + self.name
 
 
-        if self.kwargs['Link']:
+        link = self.column('Link')
+        if link:
             container = create_rectangle_with_optional_link(parent=find_layer_id(root, 'Applications'),
                                                             value=self.name,
                                                             style=swapp_style_builder.get_style(fontSize=font_size),
                                                             x=self.x, y=self.y, width=self.width, height=self.height,
-                                                            link=self.kwargs['Link'])
+                                                            link=link)
         else:
             container = create_rectangle_with_optional_link(parent=find_layer_id(root, 'Applications'),
                                                             value=self.name,
@@ -545,17 +529,18 @@ class SoftwareApplication:
 
         if self.show_pictograms:
             # Controls
-            if not (self.kwargs['Controls'] != self.kwargs['Controls']): # using pandas, returns NaN if empty
+            controls = self.column('Controls')
+            if controls:
                 container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Controls'), value=self.name,
                                                        style=swapp_style_builder.get_style(fontSize=font_size, fillColor='#f9f7ed',
                                                                                          strokeColor='#36393d;'),
                                                        x=self.x, y=self.y, width=self.width, height=self.height,
-                                                       link=self.kwargs['Controls'])
+                                                       link=controls)
                 root.append(container)
                 # this is link on top of the Controls pictogram
                 container = get_rectangle_link_overlay(parent=find_layer_id(root, 'Controls'), value="CON",
                                                        style="pointerEvents=1;shadow=0;dashed=0;strokeColor=none;fillColor=#505050;labelPosition=right;verticalLabelPosition=middle;verticalAlign=middle;outlineConnect=0;align=left;shape=mxgraph.office.security.lock_with_key_security_blue;aspect=fixed;fontFamily=Expert Sans Regular;fontSize=16;fontStyle=1",
-                                                       x=self.x + 100, y=self.y + 52, width="22.69", height="28", link=self.kwargs['Controls'])
+                                                       x=self.x + 100, y=self.y + 52, width="22.69", height="28", link=controls)
                 root.append(container)
             else:
                 container = get_rectangle(parent=find_layer_id(root, 'Controls'),
@@ -566,7 +551,7 @@ class SoftwareApplication:
 
         # StatusRAG - colour of the shole application on the Strategy layer
 
-        status = self.kwargs['StatusRAG']
+        status = self.column('StatusRAG')
         if status in DiagramConfig.STATUS_COLORS:
             self.style = swapp_style_builder.get_style(fontSize=font_size, **DiagramConfig.STATUS_COLORS[status])
 
@@ -576,12 +561,20 @@ class SoftwareApplication:
                                   x=self.x, y=self.y, width=self.width, height=self.height)
         root.append(container)
 
-        if self.kwargs.get('Resilience'):
-            resilience = self.kwargs['Resilience']
-            if resilience in DiagramConfig.RESILIENCE_COLORS:
-                self.style = swapp_style_builder.get_style(fontSize=font_size, **DiagramConfig.RESILIENCE_COLORS[resilience])
-            else:
-                raise Exception(f"Resilience value not in range 0-4 for {self.name} {resilience}")
+        # Resilience and Category are the same idea under two names; the bundled examples
+        # use one each.
+        resilience = self.column('Resilience', self.column('Category'))
+        if resilience is not None:
+            try:
+                resilience = int(resilience)
+            except (TypeError, ValueError):
+                raise InvalidInput(
+                    f"'{self.original_name}': resilience/category must be a number 0-4, "
+                    f"got {resilience!r}")
+            if resilience not in DiagramConfig.RESILIENCE_COLORS:
+                raise InvalidInput(
+                    f"'{self.original_name}': resilience/category must be 0-4, got {resilience}")
+            self.style = swapp_style_builder.get_style(fontSize=font_size, **DiagramConfig.RESILIENCE_COLORS[resilience])
 
             container = get_rectangle(parent=find_layer_id(root, 'Resilience'), value=self.name,
                                       style=self.style,
@@ -591,7 +584,7 @@ class SoftwareApplication:
 
         # TC - TC indicator
         container = get_rectangle(parent=find_layer_id(root, 'TransactionCycle'),
-                                  value=str(self.kwargs['TC']),
+                                  value=str(self.column('TC', '')),
                                   style='text;html=1;'
                                         'strokeColor=none;'
                                         'fillColor=none;'
@@ -623,20 +616,20 @@ class SoftwareApplication:
                 return "326800"
 
         # Decomm Date
-        if self.kwargs.get('DecommDate'):
-            if not pd.isna(self.kwargs['DecommDate']):
-                container = get_rectangle(parent=find_layer_id(root, 'TransactionCycle'), value='Cease ' + str(self.kwargs['DecommDate']),
-                                          style='text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;' +
-                                                'whiteSpace=wrap;rounded=0;labelBackgroundColor=none;' +
-                                                'fontFamily=Helvetica;fontStyle=1;fontSize=11;fontColor=#' +
-                                                get_date_color(self.kwargs['DecommDate']) + ';',
-                                          x=self.x + self.width - 80, y=self.y, width=80, height=20)
-                root.append(container)
+        decomm_date = self.column('DecommDate')
+        if decomm_date is not None:
+            container = get_rectangle(parent=find_layer_id(root, 'TransactionCycle'), value='Cease ' + str(decomm_date),
+                                      style='text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;' +
+                                            'whiteSpace=wrap;rounded=0;labelBackgroundColor=none;' +
+                                            'fontFamily=Helvetica;fontStyle=1;fontSize=11;fontColor=#' +
+                                            get_date_color(decomm_date) + ';',
+                                      x=self.x + self.width - 80, y=self.y, width=80, height=20)
+            root.append(container)
 
 
         if self.show_pictograms:
             # Harvey - Harvey ball
-            angle = self.kwargs['HostingPercent'] / 100
+            angle = float(self.column('HostingPercent', 0)) / 100
             if angle == 1:
                 container = get_rectangle(parent=find_layer_id(root, 'Hosting'), value='',
                                           style='ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=none;fillColor=#333333;',
@@ -649,42 +642,29 @@ class SoftwareApplication:
                                           x=self.x + 5, y=self.y + 52, width=25, height=25)
                 root.append(container)
 
-            # HostingPattern1
-            container = get_rectangle(parent=find_layer_id(root, 'Hosting'), value='',
-                                      style=self.get_style_for_hosting_pattern(self.kwargs['HostingPattern1']),
-                                      x=self.x + 40, y=self.y + 52, width=25, height=25)
-            root.append(container)
+            # Hosting patterns
+            for column, offset in (('HostingPattern1', 40), ('HostingPattern2', 68)):
+                pattern = self.column(column)
+                if pattern is None:
+                    continue
+                container = get_rectangle(parent=find_layer_id(root, 'Hosting'), value='',
+                                          style=self.get_style_for_hosting_pattern(pattern),
+                                          x=self.x + offset, y=self.y + 52, width=25, height=25)
+                root.append(container)
 
-            # Hosting Pattern2
-            container = get_rectangle(parent=find_layer_id(root, 'Hosting'), value='',
-                                      style=self.get_style_for_hosting_pattern(self.kwargs['HostingPattern2']),
-                                      x=self.x + 68, y=self.y + 52, width=25, height=25)
-            root.append(container)
-
-            # Arrow1
-            container = get_rectangle(parent=find_layer_id(root, 'Metrics'), value='',
-                                      style="html=1;shadow=0;dashed=0;align=center;verticalAlign=middle;shape=mxgraph.arrows2.arrow;dy=0.5;dx=13.86;direction=" + (
-                                             "north" if self.kwargs[
-                                                            'Arrow1'] == 'up' else "south") + ";notch=0;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333333;fontFamily=Expert Sans Regular;",
-                                      x=self.x + 103, y=self.y + 52, width=25, height=25)
-            root.append(container)
-
-            # Arrow2
-            container = get_rectangle(parent=find_layer_id(root, 'Metrics'), value='',
-                                      style="html=1;shadow=0;dashed=0;align=center;verticalAlign=middle;shape=mxgraph.arrows2.arrow;dy=0.5;dx=13.86;direction=" + (
-                                             "north" if self.kwargs[
-                                                            'Arrow2'] == 'up' else "south") + ";notch=0;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333333;fontFamily=Expert Sans Regular;",
-                                      x=self.x + 130, y=self.y + 52, width=25, height=25)
-            root.append(container)
-
-            # Metric
-            #(self.x + self.y)
-            container = get_rectangle(parent=find_layer_id(root, 'Metrics'), value='',
-                                      style="html=1;shadow=0;dashed=0;align=center;verticalAlign=middle;shape=mxgraph.arrows2.arrow;dy=0.5;dx=13.86;direction=" + (
-                                             "north" if self.kwargs[
-                                                            'Arrow2'] == 'up' else "south") + ";notch=0;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333333;fontFamily=Expert Sans Regular;",
-                                      x=self.x + 130, y=self.y + 52, width=25, height=25)
-            root.append(container)
+            # Trend arrows
+            for column, offset in (('Arrow1', 103), ('Arrow2', 130)):
+                arrow = self.column(column)
+                if arrow is None:
+                    continue
+                direction = "north" if arrow == 'up' else "south"
+                container = get_rectangle(parent=find_layer_id(root, 'Metrics'), value='',
+                                          style="html=1;shadow=0;dashed=0;align=center;verticalAlign=middle;"
+                                                "shape=mxgraph.arrows2.arrow;dy=0.5;dx=13.86;direction=" + direction +
+                                                ";notch=0;strokeColor=#FFFFFF;strokeWidth=1;fillColor=#333333;"
+                                                "fontFamily=Expert Sans Regular;",
+                                          x=self.x + offset, y=self.y + 52, width=25, height=25)
+                root.append(container)
 
 
 def get_diagram_root():
@@ -806,9 +786,11 @@ def xml_to_file(mxGraphModel, filename='output.drawio'):
     child.text = data
     root.append(child)
 
-    filepath = os.path.join(ScriptConfig.ROOT_FOLDER, filename)
+    # A relative name is resolved against ROOT_FOLDER; callers passing a path decide
+    # for themselves.
+    filepath = filename if os.path.isabs(filename) else os.path.join(ScriptConfig.ROOT_FOLDER, filename)
     tree = etree.ElementTree(root)
-    logger.info(f"Writing to file: {filepath}")
+    logger.debug(f"Writing to file: {filepath}")
     tree.write(filepath)
 
 
@@ -894,78 +876,40 @@ def find_layer_id(root, name):
         return node.get('id')
 
 
-# def render_L0(file):
-#     try:
-#         df = pd.read_csv(file, quoting=csv.QUOTE_ALL)
-#     except Exception as e:
-#         print(e)
-#         print(f"Issue with file {file}")
-#         return
-#     level0s = []
-#     for index, row in df.iterrows():
-#         L0 = next((x for x in level0s if x.name == row['Level0']), None)
-#         if L0 is None:
-#             L0 = Level0(row['Level0'])
-#             level0s.append(L0)
-#         L1 = next((x for x in L0.level1s if x.name == row['Level1']), None)
-#         if L1 is None:
-#             L1 = Level1(row['Level1'])
-#             L0.append(L1)
-#         L2 = next((x for x in L1.level2s if x.name == row['Level2']), None)
-#         if L2 is None:
-#             L2 = Level2(row['Level2'])
-#             L1.level2s.append(L2)
-#         L2.append(SoftwareApplication(row['AppName']))
-#
-#     for level0 in level0s:
-#         level0.size()
-#
-#
-#     mxGraphModel = get_diagram_root()
-#     root = mxGraphModel.find("root")
-#     append_default_layers(root)
-#
-#     MAX_PAGE_WIDTH = DiagramConfig.MAX_PAGE_WIDTH['L0']
-#
-#     L0_x_cursor = 0
-#     L0_y_cursor = 0
-#
-#     for i in range(len(level0s)):
-#         if not level0s[i].placed:
-#             level0s[i].appender(root,x=L0_x_cursor,y=L0_y_cursor)
-#             level0s[i].placed = True
-#             L0_x_cursor += level0s[i].width() + 10
-#             previous_level_height = level0s[i].height
-#             for j in range(i + 1, len(level0s)):
-#                 if not level0s[j].placed:
-#                     if L0_x_cursor + level0s[j].width() <= MAX_PAGE_WIDTH:
-#                         level0s[j].appender(root,x=L0_x_cursor,y=L0_y_cursor)
-#                         level0s[j].placed = True
-#                         L0_x_cursor += level0s[j].width() + 10
-#                         if level0s[j].height() > previous_level_height:
-#                             previous_level_height = level0s[j].height
-#             L0_x_cursor = 0
-#             L0_y_cursor += previous_level_height + 10
-#
-#     xml_to_file(mxGraphModel, file[:-4] + '.drawio')
-#
-#     drawio_shared_functions.pretty_print(mxGraphModel)
-#
-#     os.system('"C:\Program Files\draw.io\draw.io.exe" ' + file[:-4] + ".drawio")
+
+def read_landscape_csv(file):
+    """Read and validate a landscape CSV. Raises InvalidInput with a usable message."""
+    try:
+        df = pd.read_csv(file, quoting=csv.QUOTE_ALL)
+    except FileNotFoundError:
+        raise InvalidInput(f"no such file: {file}")
+    except Exception as exc:
+        raise InvalidInput(f"could not read {file}: {exc}")
+
+    missing = [column for column in REQUIRED_COLUMNS if column not in df.columns]
+    if missing:
+        raise InvalidInput(
+            f"{file} is missing required column(s): {', '.join(missing)}. "
+            f"Required: {', '.join(REQUIRED_COLUMNS)}.")
+
+    if df.empty:
+        raise InvalidInput(f"{file} has no rows")
+
+    ignored = [column for column in df.columns
+               if column not in REQUIRED_COLUMNS and column not in OPTIONAL_COLUMNS]
+    if ignored:
+        logger.warning("Ignoring column(s) the renderer does not use: %s", ', '.join(ignored))
+
+    return df
 
 
-def render_L1(file):
+def render_L1(file, output=None, partial_views=False):
     # mxGraphModel is the true "root" of the graph
     mxGraphModel = get_diagram_root()
     root = mxGraphModel.find("root")
     append_default_layers(root)
 
-    try:
-        df = pd.read_csv(file, quoting=csv.QUOTE_ALL)
-    except Exception as e:
-        print(e)
-        print(f"Issue reading:{file}")
-        return
+    df = read_landscape_csv(file)
 
     # build the structure
     level1s = []
@@ -985,7 +929,11 @@ def render_L1(file):
             L1.level2s.append(L2)
 
         # Not expecting any apps with the same name at the leaf level
-        assert not any(sa.name == app['AppName'] for sa in L2.applications), f"Duplicate App with same parent - {app['AppName']}"
+        if any(sa.original_name == app['AppName'] for sa in L2.applications):
+            raise InvalidInput(
+                f"row {index + 2}: '{app['AppName']}' appears twice under "
+                f"{app['Level1']} / {app['Level2']}; application names must be unique "
+                f"within a level 2 grouping")
 
         # Take the remaining columns apart from Level1 and Level2 and create the SoftwareApplication out of it
         # Load this dynamically from the dataframe
@@ -1030,16 +978,24 @@ def render_L1(file):
             L1_x_cursor = 0
             L1_y_cursor += previous_level_height + 10
 
-    file_name = os.path.splitext(os.path.basename(file))[0]
+    # Output sits next to the input unless told otherwise.
+    if output is None:
+        output = os.path.splitext(file)[0] + '.drawio'
+    output = os.path.abspath(output)
 
-    logger.info(f"Saving to {file_name}.drawio")
-    xml_to_file(mxGraphModel, file_name + '.drawio')
+    logger.info(f"Writing {output}")
+    xml_to_file(mxGraphModel, output)
 
     if DEBUG:
         drawio_shared_functions.pretty_print(mxGraphModel)
 
+    if partial_views:
+        render_partial_views(os.path.splitext(output)[0], level1s)
+
     if ScriptConfig.OPEN_IN_DRAWIO:
-        os.system(f'"{ScriptConfig.DRAWIO_EXECUTABLE}" ' + f"{ScriptConfig.ROOT_FOLDER}\\{file_name}.drawio")
+        os.system(f'"{ScriptConfig.DRAWIO_EXECUTABLE}" "{output}"')
+
+    return output
 
 def render_partial_views(file_name, level1s):
     for level1 in level1s:
@@ -1048,40 +1004,22 @@ def render_partial_views(file_name, level1s):
             level2.render_partial_views(file_name, level1.name)
 
 
-def main(file):
+def main(file, output=None, partial_views=False):
+    """Render a landscape diagram from a CSV. Returns the path written."""
     global swapp_style_builder
     if DiagramConfig.SHOW_PICTOGRAMS:
         swapp_style_builder = SWAppStyleBuilder(vertical_align='top')
     else:
         swapp_style_builder = SWAppStyleBuilder(vertical_align='middle')
 
-    render_L1(file)
+    return render_L1(file, output=output, partial_views=partial_views)
 
-# L0 rendering is currently not supported
-# def main(render,file):
-#     if render == 'L1':
-#         render_L1(file)
-#     elif render == 'L0':
-#         render_L0(file)
+
+# L0 would add a further level of aggregation above L1. It is not supported: the
+# renderer was never finished and no example data carries the extra level.
 
 
 if __name__ == "__main__":
+    from drawio_application_landscape.cli import main as cli_main
 
-    if sys.stdin and sys.stdin.isatty():
-        print("Running interactively")
-        DEBUG = False
-        logging.basicConfig(level=logging.INFO,
-                                       format='%(asctime)s.%(msecs)03d,%(levelname)-5s,%(name)s,Line %(lineno)d,%(message)s',
-                                       datefmt='%Y-%m-%dT%H:%M:%S')
-        logger = logging.getLogger(__name__)
-        main(sys.argv[1])
-    elif sys.gettrace():
-        print("Running in debugger")
-        DEBUG = True
-        logging.basicConfig(level=logging.DEBUG,
-                                       format='%(asctime)s.%(msecs)03d,%(levelname)-5s,%(name)s,Line %(lineno)d,%(message)s',
-                                       datefmt='%Y-%m-%dT%H:%M:%S')
-        logger = logging.getLogger(__name__)
-        main(sys.argv[1])
-    else:
-        print("Running as import")
+    sys.exit(cli_main())

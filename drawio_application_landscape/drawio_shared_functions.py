@@ -1,7 +1,7 @@
 from lxml import etree
 import random
 import string
-import drawio_tools
+from drawio_application_landscape import drawio_tools
 import xml.dom.minidom
 
 # id generator
