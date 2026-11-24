@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # pyproject declares requires-python >= 3.10, so check the floor as well as
+        # a current version rather than taking the claim on trust.
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Tests
+        run: python -m pytest -q
+
+      - name: Render a committed example end to end
+        run: |
+          landscape examples/Application_Diagram_Builder.csv -o "${RUNNER_TEMP}/out.drawio"
+          test -s "${RUNNER_TEMP}/out.drawio"

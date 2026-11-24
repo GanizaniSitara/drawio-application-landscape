@@ -1,7 +1,7 @@
 """The command line contract: what it accepts, and what it exits with."""
 import os
 
-from conftest import MINIMAL_CSV, read_model
+from conftest import MINIMAL_CSV
 from drawio_application_landscape.cli import (EXIT_INVALID_INPUT, EXIT_OK, main)
 from drawio_application_landscape.config.config_diagram import DiagramConfig
 

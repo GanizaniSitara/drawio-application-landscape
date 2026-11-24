@@ -1,5 +1,6 @@
-import base64, zlib
-from urllib.parse import quote, unquote, quote_plus
+import base64
+import zlib
+from urllib.parse import quote, unquote
 
 # functions courtesy of
 # https://stackoverflow.com/questions/46351275/using-pako-deflate-with-python
